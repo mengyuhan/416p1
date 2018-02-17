@@ -95,6 +95,8 @@ type Operation struct {
 	AppShape      string
 	OpSig         string
 	PubKeyArtNode string //key of the art node that generated the op
+	ShapeCommand  string // e.g. "M 0 0 L 0 3"
+	ShapeFill     string // fill or transparent
 }
 
 type Coordinate struct {
@@ -139,7 +141,6 @@ type MinerRPCs interface {
 	GetGenesisBlock(args int, blockHash *string) error
 	GetChildren(blockHash string, blockHashes *[]string) error
 	CloseCanvas(args int, reply *CloseCanvReply) error
-
 }
 
 func getBlockchain() []Block {
@@ -746,14 +747,14 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 		remainInk, previousMap)
 	fmt.Println("@@@ink remaining!!!! %d-------------------------", remainInk, err)
 
-		currentInkRemain := remainInk - spentInk
+	currentInkRemain := remainInk - spentInk
 	if err != nil {
 		return err
 	}
 
 	pkStr := getPubKeyInStr(myPrivKey.PublicKey)
 	shapeHash := computeNonceSecretHash(svgStr, pkStr) // use miner's public key
-	newOp := Operation{svgStr, shapeHash, args.ArtNodePK}
+	newOp := Operation{svgStr, shapeHash, args.ArtNodePK, args.ShapeSvgString, args.Fill}
 
 	lastOne := len(blockChain) - 1
 	var newBlock Block
@@ -818,54 +819,56 @@ func (m *MinerRPC) GetSvgString(shapeHash string, svgString *string) error {
 func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 	// try delete shape by args
 	lastOne := len(blockChain) - 1
-	if lastOne<0 {
+	if lastOne < 0 {
 		return InvalidShapeHashError(args.shapeHash)
 	}
 	operations := blockChain[lastOne].Ops
 	for i := 0; i < len(operations); i++ {
 		if operations[i].OpSig == args.shapeHash {
 			if args.ArtNodePK == operations[i].PubKeyArtNode {
-			
-				// newOp := Operation{"delete", args.shapeHash, args.ArtNodePK}
-				// newBlock, err1 := generateBlock(blockChain[lastOne])
-				// var noOp uint8
-				// if blockChain[lastOne].NoOpBlock {
-				// 	noOp = settings.PoWDifficultyNoOpBlock
-				// } else {
-				// 	noOp = settings.PoWDifficultyOpBlock
-				// }
-				// preHash, _ := calculateHash(blockChain[lastOne], noOp)
-				
-				// newOps := blockChain[lastOne].Ops
-				// newOps = append(newOps, newOp)
 
+				newOp := Operation{"delete", args.shapeHash, args.ArtNodePK, "", ""}
+				newBlock, err1 := generateBlock(blockChain[lastOne])
+				var noOp uint8
+				if blockChain[lastOne].NoOpBlock {
+					noOp = settings.PoWDifficultyNoOpBlock
+				} else {
+					noOp = settings.PoWDifficultyOpBlock
+				}
+				preHash, _ := calculateHash(blockChain[lastOne], noOp)
 
-				// operations[i].AppShape
+				newOps := blockChain[lastOne].Ops
+				newOps = append(newOps, newOp)
 
-				// maptmp := make(map[string]SvgHelper.MapPoint)
-				// returnedInk:=SvgHelper.RemoveShapeFromMap()
-				// mInks := blockChain[lastOne].MinerInks
-				// incAcc := mInks[myKeyPairInString]
-				// incAcc.inkRemain = uint32(currentInkRemain)
-				// fmt.Println("@@@ADD23DD")
-				
-				// inkSpent, inkMined:=totalInkSpentAndMinedByMiner(blockChain, pkStr)
-				// incAcc.inkMined = inkMined
-				// incAcc.inkSpent = uint32(spentInk)+inkSpent
-				// mInks[myKeyPairInString] = incAcc
-		
-				// canvOps := blockChain[lastOne].CanvasOperations
-				// myOps := canvOps[myKeyPairInString]
-				// svgAndHash := svgStr + ":" + shapeHash
-				// myOps = append(myOps, svgAndHash)
-				// canvOps[myKeyPairInString] = myOps
-				// newBlock = Block{preHash, 0, newOps, false, myKeyPairInString, lastOne + 1, mInks,
-				// 	blockChain[lastOne].CanvasInks, canvOps} // need update CanvasInks myKeyPairInString
-				// blockHash, nonce := calculateHash(newBlock, settings.PoWDifficultyOpBlock)
-				// tmp, _ := strconv.ParseUint(nonce, 10, 32)
-				// newBlock.Nonce = uint32(tmp)
-				// blockChain = append(blockChain, newBlock)
+				operations[i].AppShape
 
+				lastBlk := blockChain[lastOne]
+				mInks := lastBlk.MinerInks
+				incAcc := mInks[myKeyPairInString]
+				previousMap := lastBlk.CanvasInks
+
+				returnedInk, err2 := SvgHelper.RemoveShapeFromMap(operations[i].ShapeCommand, args.ArtNodePK,
+					operations[i].ShapeFill, int(incAcc.inkRemain), previousMap)
+
+				incAcc.inkRemain = uint32()
+				fmt.Println("@@@ADD23DD")
+
+				inkSpent, inkMined := totalInkSpentAndMinedByMiner(blockChain, pkStr)
+				incAcc.inkMined = inkMined
+				incAcc.inkSpent = uint32(spentInk) + inkSpent
+				mInks[myKeyPairInString] = incAcc
+
+				canvOps := blockChain[lastOne].CanvasOperations
+				myOps := canvOps[myKeyPairInString]
+				svgAndHash := svgStr + ":" + shapeHash
+				myOps = append(myOps, svgAndHash)
+				canvOps[myKeyPairInString] = myOps
+				newBlock = Block{preHash, 0, newOps, false, myKeyPairInString, lastOne + 1, mInks,
+					blockChain[lastOne].CanvasInks, canvOps} // need update CanvasInks myKeyPairInString
+				blockHash, nonce := calculateHash(newBlock, settings.PoWDifficultyOpBlock)
+				tmp, _ := strconv.ParseUint(nonce, 10, 32)
+				newBlock.Nonce = uint32(tmp)
+				blockChain = append(blockChain, newBlock)
 
 				ink := blockChain[lastOne].MinerInks[myKeyPairInString]
 				*inkRemaining = ink.inkRemain
@@ -917,10 +920,9 @@ func (m *MinerRPC) GetGenesisBlock(args int, blockHash *string) error {
 	return nil
 }
 
-
 func (m *MinerRPC) GetChildren(blockHash string, blockHashes *[]string) error {
 	// blockHashes = children of blockHash
-	
+
 	lastOne := len(blockChain) - 1
 	if lastOne < 0 {
 		return InvalidBlockHashError(blockHash)
@@ -936,8 +938,8 @@ func (m *MinerRPC) GetChildren(blockHash string, blockHashes *[]string) error {
 				noOp = settings.PoWDifficultyOpBlock
 			}
 			mblockHash, _ := calculateHash(blockChain[i], noOp)
-			strs=append(strs, mblockHash)
-			*blockHashes=strs
+			strs = append(strs, mblockHash)
+			*blockHashes = strs
 			return nil
 		}
 	}
@@ -945,10 +947,10 @@ func (m *MinerRPC) GetChildren(blockHash string, blockHashes *[]string) error {
 }
 
 func (m *MinerRPC) CloseCanvas(args int, reply *CloseCanvReply) error {
-	
+
 	lastOne := len(blockChain) - 1
-	if lastOne<0 {
-		*reply = CloseCanvReply{inkRemaining:0}
+	if lastOne < 0 {
+		*reply = CloseCanvReply{inkRemaining: 0}
 		return nil
 	}
 	ink := blockChain[lastOne].MinerInks[myKeyPairInString]
@@ -957,8 +959,6 @@ func (m *MinerRPC) CloseCanvas(args int, reply *CloseCanvReply) error {
 	fmt.Println("@@@ CloseCanvas")
 	return nil
 }
-
-
 
 /*********************************
 RPC calls for inkMIner to inkMiner

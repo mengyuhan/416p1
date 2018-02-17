@@ -239,7 +239,9 @@ type CloseCanvReply struct {
 type Operation struct {
 	AppShape      string
 	OpSig         string
-	PubKeyArtNode string
+	PubKeyArtNode string //key of the art node that generated the op
+	ShapeCommand  string // e.g. "M 0 0 L 0 3"
+	ShapeFill     string // fill or transparent
 }
 
 // The constructor for a new Canvas object instance. Takes the miner's
@@ -382,14 +384,15 @@ func (c *MyCanvas) CloseCanvas() (inkRemaining uint32, err error) {
 	args := 0
 	var reply *CloseCanvReply
 	err = c.conn.Call("InkMinerRPC.CloseCanvas", args, &reply)
-	ops:=(*reply).Ops
-	html:="<HTML>	<HEAD>	   <TITLE>A Small Hello	   </TITLE>	</HEAD>  <BODY>	<H1>Hi</H1>  <svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" height=\"190\">"
-	for i:=0; i<len(ops);i++ {
-		if ops[i].AppShape != "delete"{
-			html = html+ops[i].AppShape
+	ops := (*reply).Ops
+	html := "<HTML>	<HEAD>	   <TITLE>A Small Hello	   </TITLE>	</HEAD>  <BODY>	<H1>Hi</H1>  <svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" height=\"190\">"
+	for i := 0; i < len(ops); i++ {
+		if ops[i].AppShape != "delete" {
+			html = html + ops[i].AppShape
 		}
 	}
-	html = html+"</svg>	<P>This is very minimal \"hello world\" HTML documen.</P>  </BODY> </HTML>"
+	html = html + "</svg>	<P>This is very minimal \"hello world\" HTML documen.</P>  </BODY> </HTML>"
+
 	fmt.Println(html)
 	inkRemaining = (*reply).inkRemaining
 	return inkRemaining, err
