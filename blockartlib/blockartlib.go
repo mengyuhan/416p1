@@ -227,8 +227,8 @@ type AddShapeReply struct {
 }
 
 type DelShapeArgs struct {
-	validateNum uint8
-	shapeHash   string
+	ValidateNum uint8
+	ShapeHash   string
 	ArtNodePK   string
 }
 
@@ -348,7 +348,7 @@ func (c *MyCanvas) GetInk() (inkRemaining uint32, err error) {
 // - ShapeOwnerError
 func (c *MyCanvas) DeleteShape(validateNum uint8, shapeHash string) (inkRemaining uint32, err error) {
 	args := DelShapeArgs{validateNum, shapeHash, c.artnodePrivKey}
-	fmt.Print(args, "lib!!!")
+	fmt.Print(args.ShapeHash, "lib!!!")
 	err = c.conn.Call("InkMinerRPC.DeleteShape", args, &inkRemaining)
 	return inkRemaining, err
 }
