@@ -1,10 +1,9 @@
 /*
 
-A trivial application to illustrate how the blockartlib library can be
-used from an application in project 1 for UBC CS 416 2017W2.
+Add and remove a single shape.
 
 Usage:
-go run art-app.go miner-addr privKey
+go run art-app.go <miner-addr:art-app-port> <privKey>
 */
 
 package main
@@ -17,7 +16,7 @@ import (
 	"fmt"
 	"os"
 
-	"./blockartlib"
+	"../blockartlib"
 )
 
 func main() {
@@ -43,27 +42,26 @@ func main() {
 
 	validateNum := uint8(2)
 	fmt.Print(canvas, "ignore", validateNum)
-	// Add a line.
-	shapeHash, _, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
+
+	/************************
+	Add a parallelogram
+	*************************/
+	shapeHash, blockHash, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 1000 0 l 50 0 l 50 50 h -50 z", "transparent", "red")
 	if checkError(err) != nil {
-		// return
+		return
 	}
-	println("\n----------------------------")
-	fmt.Println(shapeHash, ink)
+	println("----------------------------")
+	fmt.Print(shapeHash, blockHash, ink)
 	println("----------------------------")
 
-	inkRm, err3 := canvas.DeleteShape(3, shapeHash)
-	if checkError(err3) != nil {
-		return
-	}
-	fmt.Print("####", inkRm)
-
-	// // Add another line.
-	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
+	// Delete the first line.
+	ink3, err := canvas.DeleteShape(validateNum, shapeHash)
 	if checkError(err) != nil {
 		return
 	}
-	fmt.Print(shapeHash2, blockHash2, ink2)
+	fmt.Println(ink3)
+
+	// assert ink3 > ink2
 
 	// Close the canvas.
 	ink4, err := canvas.CloseCanvas()

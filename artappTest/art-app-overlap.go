@@ -1,10 +1,11 @@
 /*
 
-A trivial application to illustrate how the blockartlib library can be
-used from an application in project 1 for UBC CS 416 2017W2.
+Test for overlapping shapes with the same artnode. This art app will
+-Add a triangle
+-Add a line which overlaps with the triangle
 
 Usage:
-go run art-app.go miner-addr privKey
+go run art-app.go port
 */
 
 package main
@@ -12,18 +13,17 @@ package main
 // Expects blockartlib.go to be in the ./blockartlib/ dir, relative to
 // this art-app.go file
 import (
+	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/pem"
 	"fmt"
 	"os"
 
-	"./blockartlib"
+	"../blockartlib"
 )
 
 func main() {
-	// minerAddr := "127.0.0.1:8088"
-	// privKey := // TODO: use crypto/ecdsa to read pub/priv keys from a file argument.
-
 	if len(os.Args) != 3 {
 		fmt.Println("Server address [ip:port] privatekeyString")
 		return
@@ -43,34 +43,29 @@ func main() {
 
 	validateNum := uint8(2)
 	fmt.Print(canvas, "ignore", validateNum)
-	// Add a line.
-	shapeHash, _, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
-	if checkError(err) != nil {
-		// return
-	}
-	println("\n----------------------------")
-	fmt.Println(shapeHash, ink)
-	println("----------------------------")
 
-	inkRm, err3 := canvas.DeleteShape(3, shapeHash)
-	if checkError(err3) != nil {
+	shapeHash, blockHash, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 400 0 L 0 400 h 800 l -400 -400", "non-transparent", "red")
+	if checkError(err) != nil {
 		return
 	}
-	fmt.Print("####", inkRm)
+	fmt.Println(shapeHash)
+	fmt.Println(blockHash)
+	fmt.Println(ink)
 
-	// // Add another line.
-	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
+	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "300 0 L 0 5000", "transparent", "red")
 	if checkError(err) != nil {
 		return
 	}
 	fmt.Print(shapeHash2, blockHash2, ink2)
+
+	// assert ink3 > ink2
 
 	// Close the canvas.
 	ink4, err := canvas.CloseCanvas()
 	if checkError(err) != nil {
 		return
 	}
-	fmt.Println(ink4)
+	println(ink4)
 }
 
 // If error is non-nil, print it out and return it.
@@ -80,4 +75,12 @@ func checkError(err error) error {
 		return err
 	}
 	return nil
+}
+
+func decode(privateKey string) *ecdsa.PrivateKey {
+	block, _ := pem.Decode([]byte(privateKey))
+	x509Encoded := block.Bytes
+	pKey, _ := x509.ParseECPrivateKey(x509Encoded)
+
+	return pKey
 }
