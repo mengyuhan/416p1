@@ -4,7 +4,7 @@ A trivial application to illustrate how the blockartlib library can be
 used from an application in project 1 for UBC CS 416 2017W2.
 
 Usage:
-go run art-app.go
+go run art-app.go miner-addr privKey
 */
 
 package main

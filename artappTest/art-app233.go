@@ -1,9 +1,10 @@
 /*
 
-This art-app tries to draw something where it doesn't have the requisite amount of ink.
+A trivial application to illustrate how the blockartlib library can be
+used from an application in project 1 for UBC CS 416 2017W2.
 
 Usage:
-go run art-app.go <miner-addr:art-app-port> <privKey>
+go run art-app.go
 */
 
 package main
@@ -15,8 +16,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"time"
 
-	"../blockartlib"
+	"./blockartlib"
 )
 
 func main() {
@@ -39,40 +41,33 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-
+	fmt.Print(canvas, "ignore")
 	validateNum := uint8(2)
-	fmt.Print(canvas, "ignore", validateNum)
 
-	/************************
-	Add a line
-	*************************/
-	shapeHash, blockHash, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 200 200 L 0 100", "transparent", "red")
+	// Add a square.
+	shapeHash, blockHash, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 600 600 l 39 0 v 39 h -39 z", "filled", "red")
 	if checkError(err) != nil {
-		// return
+		fmt.Println(err)
+		return
 	}
-	println("----------------------------")
 	fmt.Print(shapeHash, blockHash, ink)
-	println("----------------------------")
 
-	/************************
-	Add a triangle
-	*************************/
-	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 400 0 L 0 400 h 800 l -400 -400", "transparent", "blue")
+	time.Sleep(100000000)
+	// // Add 凸
+	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 800 800 l 50 0 l 0 50 h 50 v 50  h -150 v -50 h 50 z", "transparent", "blue")
 	if checkError(err) != nil {
+		fmt.Println(err)
 		return
 	}
 	fmt.Print(shapeHash2, blockHash2, ink2)
+	// // Add 凹
+	shapeHash3, blockHash3, ink3, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 500 500 l 30 0 l 0 30 h 30 v -30  h 30 v 60 h -90 z", "transparent", "green")
+	if checkError(err) != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Print(shapeHash3, blockHash3, ink3)
 
-	// Delete the first line.
-	// ink3, err := canvas.DeleteShape(validateNum, shapeHash)
-	// if checkError(err) != nil {
-	// 	return
-	// }
-	// fmt.Println(ink3)
-
-	// assert ink3 > ink2
-
-	// Close the canvas.
 	ink4, err := canvas.CloseCanvas()
 	if checkError(err) != nil {
 		return
