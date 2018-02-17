@@ -42,7 +42,6 @@ var (
 	localIPPortArr    [2]string
 	artAppListenPort  string
 	globalPubKeyStr   string = ""
-	currInkMined      uint32
 )
 
 type allMinersConnectedTo struct {
@@ -312,7 +311,11 @@ func main() {
 		//fmt.Printf("globalPubKeyStr: %s\n", globalPubKeyStr)
 		inkMinedRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkMined
 		inkRemainingRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkRemain
+<<<<<<< HEAD
 		currInkMined = inkMinedRightNow
+=======
+
+>>>>>>> 2b1abd5b7887f776080e1e0a190531e38947241e
 		fmt.Printf("My ink mined is %d remaining is: %d\n", inkMinedRightNow, inkRemainingRightNow)
 	}
 }
@@ -705,12 +708,12 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 	newOps = append(newOps, newOp)
 	mInks := blockChain[lastOne].MinerInks
 	incAcc := mInks[globalPubKeyStr]
-	incAcc.inkRemain = uint32(currentInkRemain)
 	fmt.Println("@@@ADD23DD")
 
-	inkSpent, inkMined := totalInkSpentAndMinedByMiner(blockChain, pkStr)
+	_, inkMined := totalInkSpentAndMinedByMiner(blockChain, pkStr)
 	incAcc.inkMined = inkMined
-	incAcc.inkSpent = uint32(spentInk) + inkSpent
+	incAcc.inkSpent = uint32(spentInk) + incAcc.inkSpent
+	incAcc.inkRemain = inkMined  - incAcc.inkSpent
 	fmt.Println("@@@in incAcc inkMined!!!! %d-----------inkSpent!!!! %d-------incAcc.inkRemain %d-------", inkMined, incAcc.inkSpent, incAcc.inkRemain)
 
 	mInks[globalPubKeyStr] = incAcc
