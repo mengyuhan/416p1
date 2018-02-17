@@ -293,26 +293,26 @@ func main() {
 	go monitorNumConnections(ipPort)
 
 	for {
-		sleep_time := 3000 * time.Millisecond
+		sleep_time := 100 * time.Millisecond
 		time.Sleep(sleep_time)
 
-		fmt.Println("Main still alive")
+		//fmt.Println("Main still alive")
 		if globalPubKeyStr == "" {
 			myPubKeyStr := getPubKeyInStr(myPrivKey.PublicKey)
 			globalPubKeyStr = myPubKeyStr
-			fmt.Printf("In main, global pubkeystr is: %s\n", globalPubKeyStr)
+			//fmt.Printf("In main, global pubkeystr is: %s\n", globalPubKeyStr)
 		}
 
 		mineNoOpBlocks(globalPubKeyStr)
-		fmt.Printf("Mined a block. Blockchain is now %d\n", len(blockChain))
-		lastOne := len(blockChain) - 1
-		fmt.Printf("lastOne index: %d\n", lastOne)
-		fmt.Printf("Last blk index: %d\n", blockChain[lastOne].Index)
+		//fmt.Printf("Mined a block. Blockchain is now %d\n", len(blockChain))
+		//lastOne := len(blockChain) - 1
+		//fmt.Printf("lastOne index: %d\n", lastOne)
+		//fmt.Printf("Last blk index: %d\n", blockChain[lastOne].Index)
 		//fmt.Printf("globalPubKeyStr: %s\n", globalPubKeyStr)
-		inkMinedRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkMined
-		inkRemainingRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkRemain
+		// inkMinedRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkMined
+		// inkRemainingRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkRemain
 
-		fmt.Printf("My ink mined is %d remaining is: %d\n", inkMinedRightNow, inkRemainingRightNow)
+		//fmt.Printf("My ink mined is %d remaining is: %d\n", inkMinedRightNow, inkRemainingRightNow)
 	}
 }
 
@@ -680,7 +680,7 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 		remainInk, previousMap)
 
 	currentInkRemain := remainInk - spentInk
-	fmt.Println("@@@ink remaining!!!! %d-----------spend!!!! %d-------currentinkRemain %d-------", remainInk, spentInk, currentInkRemain)
+	// fmt.Println("@@@ink remaining!!!! %d-----------spend!!!! %d-------currentinkRemain %d-------", remainInk, spentInk, currentInkRemain)
 	if err != nil {
 		return err
 	}
@@ -709,8 +709,8 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 	_, inkMined := totalInkSpentAndMinedByMiner(blockChain, pkStr)
 	incAcc.inkMined = inkMined
 	incAcc.inkSpent = uint32(spentInk) + incAcc.inkSpent
-	incAcc.inkRemain = inkMined  - incAcc.inkSpent
-	fmt.Println("@@@in incAcc inkMined!!!! %d-----------inkSpent!!!! %d-------incAcc.inkRemain %d-------", inkMined, incAcc.inkSpent, incAcc.inkRemain)
+	incAcc.inkRemain = inkMined - incAcc.inkSpent
+	fmt.Printf("@@@in incAcc inkMined!!!! %d----------- total inkSpent!!!! %d------Inkspendthistime %d-------incAcc.inkRemain %d-------", inkMined, incAcc.inkSpent, spentInk, incAcc.inkRemain)
 
 	mInks[globalPubKeyStr] = incAcc
 
@@ -812,7 +812,6 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 					time.Sleep(3 * time.Second)
 				}
 				ink := blockChain[lastOne].MinerInks[globalPubKeyStr]
->>>>>>> 965f520dfc70398a3ed6f68e92373d394ed4a67b
 				*inkRemaining = ink.inkRemain
 				return err2
 			}

@@ -16,9 +16,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"time"
 
-	"./blockartlib"
+	"../blockartlib"
 )
 
 func main() {
@@ -52,7 +51,6 @@ func main() {
 	}
 	fmt.Print(shapeHash, blockHash, ink)
 
-	time.Sleep(100000000)
 	// // Add 凸
 	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 800 800 l 50 0 l 0 50 h 50 v 50  h -150 v -50 h 50 z", "transparent", "blue")
 	if checkError(err) != nil {
