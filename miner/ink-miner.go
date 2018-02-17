@@ -2,7 +2,7 @@ package main
 
 /*
 	Usage:
-	go run ink-miner.go [server ip:port] [pubKey] [privKey]
+	go run ink-miner.go [server ip:port] [priv-key] [miner listen port] [art-app listen port]
 */
 
 // package ink-miner
@@ -35,13 +35,13 @@ var (
 	settings          MinerNetSettings
 	myMinerInfo       MinerInfo
 	minersConnectedTo allMinersConnectedTo = allMinersConnectedTo{currentNumNeighbours: 0, all: make([]string, 10)}
-	myPrivKey         ecdsa.PrivateKey
+	myPrivKey         *ecdsa.PrivateKey
 	serverIPPOrt      string
 	miners            []net.Addr
 	localIPPortStr    string
 	localIPPortArr    [2]string
 	artAppListenPort  string
-	globalPubKeyStr   string
+	globalPubKeyStr   string = ""
 	currInkMined      uint32
 )
 
@@ -95,6 +95,8 @@ type Operation struct {
 	AppShape      string
 	OpSig         string
 	PubKeyArtNode string //key of the art node that generated the op
+	ShapeCommand  string // e.g. "M 0 0 L 0 3"
+	ShapeFill     string // fill or transparent
 }
 
 type Coordinate struct {
@@ -144,14 +146,6 @@ type MinerRPCs interface {
 func getBlockchain() []Block {
 	return blockChain
 }
-
-// type BlockChain struct {
-// 	Blocks []Block
-// }
-
-// func (b BlockChain) getBlockchain() []Block {
-// 	return b.Blocks
-// }
 
 /*************************************
 Structs for RPC calls for miner2miner
@@ -253,7 +247,7 @@ func (e InsufficientInkError) Error() string {
 
 func main() {
 	// Read in command line args
-	// args[0] is server:port, args[1] is public key, args[2] is private key
+	// args[0] is server:port, args[1] is private key, args[2] is miner port, args[3] is art-app port
 	args := os.Args[1:]
 	ipPort := args[0]
 	myKeyPairInString = args[1]
@@ -274,12 +268,10 @@ func main() {
 	// Register with the Server and get settings
 	addr, err := net.ResolveTCPAddr("tcp", localIPPortStr)
 
-	exitOnError("resolve addr 1", err)
-	//priv, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	exitOnError("resolve addr", err)
 	keyAsBytes, _ := hex.DecodeString(myKeyPairInString)
-	myPrivKey, _ := x509.ParseECPrivateKey(keyAsBytes)
-
-	exitOnError("generate key 1", err)
+	myPrivKeyLocal, _ := x509.ParseECPrivateKey(keyAsBytes)
+	myPrivKey = myPrivKeyLocal
 
 	gob.Register(&net.TCPAddr{})
 	gob.Register(&elliptic.CurveParams{})
@@ -288,7 +280,7 @@ func main() {
 	cRPC, err := rpc.Dial("tcp", ipPort)
 	defer cRPC.Close()
 	if err != nil {
-		fmt.Println(err.Error)
+		fmt.Println("Error dialing to server ", err.Error)
 	}
 	fmt.Println("Miner address is ====== " + addr.String())
 	myMinerInfo = MinerInfo{Address: addr, Key: myPrivKey.PublicKey}
@@ -301,25 +293,27 @@ func main() {
 
 	go monitorNumConnections(ipPort)
 
-	// fmt.Println("Sending blocks to neighbours.")
-	// sendBlockchainToMiners(neighbours)
-	// fmt.Println(getBlockchain())
-
 	for {
-		sleep_time := 100 * time.Millisecond
+		sleep_time := 3000 * time.Millisecond
 		time.Sleep(sleep_time)
 
 		fmt.Println("Main still alive")
-		myPubKeyStr := getPubKeyInStr(myPrivKey.PublicKey)
-		globalPubKeyStr = myPubKeyStr
-		mineNoOpBlocks(myPubKeyStr)
+		if globalPubKeyStr == "" {
+			myPubKeyStr := getPubKeyInStr(myPrivKey.PublicKey)
+			globalPubKeyStr = myPubKeyStr
+			fmt.Printf("In main, global pubkeystr is: %s\n", globalPubKeyStr)
+		}
+
+		mineNoOpBlocks(globalPubKeyStr)
 		fmt.Printf("Mined a block. Blockchain is now %d\n", len(blockChain))
 		lastOne := len(blockChain) - 1
-		fmt.Printf("Last blk index: %d\n", lastOne)
-		fmt.Printf("myPubKeyStr: %s\n", myPubKeyStr)
-		inkMinedRightNow := blockChain[lastOne].MinerInks[myPubKeyStr].inkMined
+		fmt.Printf("lastOne index: %d\n", lastOne)
+		fmt.Printf("Last blk index: %d\n", blockChain[lastOne].Index)
+		//fmt.Printf("globalPubKeyStr: %s\n", globalPubKeyStr)
+		inkMinedRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkMined
+		inkRemainingRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkRemain
 		currInkMined = inkMinedRightNow
-		fmt.Printf("My ink is: %d\n", inkMinedRightNow)
+		fmt.Printf("My ink mined is %d remaining is: %d\n", inkMinedRightNow,inkRemainingRightNow)
 	}
 }
 
@@ -347,7 +341,6 @@ func generateNoOpBlock(minerPubKey string) Block {
 	opsArr := make([]Operation, 0)
 	cInks := lastBlk.CanvasInks
 	cOps := lastBlk.CanvasOperations
-	pubKeyStr := getPubKeyInStr(myPrivKey.PublicKey)
 
 	lastBlkHash, _ := calculateHash(lastBlk, difficulty)
 
@@ -356,27 +349,15 @@ func generateNoOpBlock(minerPubKey string) Block {
 		Nonce:            0,
 		Ops:              opsArr,
 		NoOpBlock:        true,
-		PubKeyMiner:      pubKeyStr,
-		Index:            1,
+		PubKeyMiner:      globalPubKeyStr,
+		Index:            lastBlockIndex + 1,
 		MinerInks:        lastBlk.MinerInks,
 		CanvasInks:       cInks,
 		CanvasOperations: cOps,
 	}
 
 	oldMinerInks := lastBlk.MinerInks
-	// if myInkAccount, ok := oldMinerInks[getPubKeyInStr(myPrivKey.PublicKey)]; ok {
-	// 	fmt.Println("incrementing ink")
-	// 	fmt.Println(myInkAccount)
-	// 	myInkAccount.inkMined = myInkAccount.inkMined + settings.InkPerNoOpBlock
-	// 	oldMinerInks[getPubKeyInStr(myPrivKey.PublicKey)] = myInkAccount
-	// 	str := getPubKeyInStr(myPrivKey.PublicKey)
-	// 	fmt.Printf("in gen noop block: %s\n", str)
-	// 	blk.MinerInks = oldMinerInks
-	// } else {
-	// 	fmt.Println("setting ink for first time")
-	// 	oldMinerInks[getPubKeyInStr(myPrivKey.PublicKey)] = InkAccount{inkMined: settings.InkPerNoOpBlock, inkSpent: 0, inkRemain: 0}
-	// 	blk.MinerInks = oldMinerInks
-	// }
+
 	if myInkAccount, ok := oldMinerInks[minerPubKey]; ok {
 		fmt.Println("incrementing ink")
 		fmt.Println(myInkAccount)
@@ -389,7 +370,6 @@ func generateNoOpBlock(minerPubKey string) Block {
 	} else {
 		fmt.Println("setting ink for first time")
 		oldMinerInks[minerPubKey] = InkAccount{inkMined: settings.InkPerNoOpBlock, inkSpent: 0, inkRemain: settings.InkPerNoOpBlock}
-		fmt.Println("Setting ink for first time")
 		fmt.Println(oldMinerInks)
 		blk.MinerInks = oldMinerInks
 	}
@@ -415,17 +395,16 @@ func generateBlock(oldBlock Block) (Block, error) {
 func generateFirstBlock() (Block, error) {
 	opsArr := make([]Operation, 0)
 	mInks := make(map[string]InkAccount)
-	mInks[getPubKeyInStr(myPrivKey.PublicKey)] = InkAccount{inkMined: settings.InkPerNoOpBlock, inkRemain: settings.InkPerNoOpBlock, inkSpent: 0}
+	mInks[globalPubKeyStr] = InkAccount{inkMined: settings.InkPerNoOpBlock, inkRemain: settings.InkPerNoOpBlock, inkSpent: 0}
 	cInks := make(map[string]SvgHelper.MapPoint)
 	cOps := make(map[string][]string)
-	pubKeyStr := getPubKeyInStr(myPrivKey.PublicKey)
 
 	blk := Block{
 		PrevHash:         settings.GenesisBlockHash,
 		Nonce:            0,
 		Ops:              opsArr,
 		NoOpBlock:        true,
-		PubKeyMiner:      pubKeyStr,
+		PubKeyMiner:      globalPubKeyStr,
 		Index:            1,
 		MinerInks:        mInks,
 		CanvasInks:       cInks,
@@ -496,8 +475,11 @@ func monitorNumConnections(ipPort string) {
 		var neighbours []net.Addr
 
 		helperGetNodes(ipPort, myMinerInfo, &neighbours)
-		fmt.Println(neighbours)
-		connectToMiners(neighbours)
+		if len(neighbours) > 0 {
+			fmt.Println(neighbours)
+			fmt.Println("monitoring connections")
+			connectToMiners(neighbours)
+		}
 	}
 }
 
@@ -508,51 +490,6 @@ func isNoOpBlock(block Block) bool {
 	}
 	return false
 }
-
-/*********************
-Operation Validations
-*********************/
-
-/* Check that each operation has sufficient ink associated with the public key
-that generated the operation.*/
-func sufficientInk() bool {
-	return false
-}
-
-/*
-Check that each operation does not violate the shape intersection policy
-described above.
-*/
-func doesIntersect() bool {
-	return false
-}
-
-/*
-Check that the operation with an identical signature has not been previously
-added to the blockchain
-*/
-func opSigAdded() bool {
-	return false
-}
-
-/*
-Check that an operation that deletes a shape refers to a shape that exists
-and which has not been previously deleted.
-*/
-func previousDelete() bool {
-	return false
-}
-
-/*
-How we deal with testing
-*/
-// func TestIntersect(t *testing.T) {
-// 	// test stuff here...
-// 	intersect := previousDelete()
-// 	if intersect == false {
-// 		t.Error("Expected false, got: ", intersect)
-// 	}
-// }
 
 /***************************
 Miner-Server Communication
@@ -583,8 +520,7 @@ func sendHeartBeats(ipPort string, miner MinerInfo, heartBeatInterval uint32) {
 
 /*
 A wrapper on the GetNodes RPC call. It invokes a GetNodes RPC call only if the
-current number of connections is less than the minimum. This function is called
-whenever the currentNumNeighbors field is changed.
+current number of connections is less than the minimum.
 
 @returns: true if addresses were obtained and false otherwise
 */
@@ -644,7 +580,7 @@ func connectToMiner(addr net.Addr) {
 	if err != nil {
 		fmt.Println("Issue with EstablishReverseRPC", err)
 	}
-	fmt.Println(reply)
+	fmt.Printf("Did other side connect to me?: %s\n", reply)
 	go handleMiner(*miner2minerRPC)
 }
 
@@ -654,9 +590,9 @@ A handler that handles all logic between two miners
 func handleMiner(otherMiner rpc.Client) {
 	defer otherMiner.Close()
 	minersConnectedTo.Lock()
-	defer minersConnectedTo.Unlock()
 	minersConnectedTo.currentNumNeighbours = minersConnectedTo.currentNumNeighbours + 1
-	fmt.Println(minersConnectedTo.currentNumNeighbours)
+	fmt.Printf("Curr num neighbours connected to: %d\n", minersConnectedTo.currentNumNeighbours)
+	minersConnectedTo.Unlock()
 	reply := ""
 	fmt.Println("About to make RPC call")
 	err := otherMiner.Call("MinerToMinerRPC.PrintText", "Hi from your neighbour!", &reply)
@@ -671,7 +607,9 @@ func handleMiner(otherMiner rpc.Client) {
 		time.Sleep(sleep_time)
 
 		var reply string
+		fmt.Println("Sending block chain to neighbour")
 		otherMiner.Call("SendBlockChain", blockChain, &reply)
+		fmt.Printf("Did other side receive it?: %s\n", reply)
 	}
 }
 
@@ -723,11 +661,9 @@ func minerInkRemain() uint32 {
 	if len(blockChain) == 0 {
 		return 0
 	}
-	//lastOne := len(blockChain) - 1
-	//remainInk := blockChain[lastOne].MinerInks[getPubKeyInStr(myPrivKey.PublicKey)]
-	//return remainInk.inkRemain
-	fmt.Printf("Remaining ink: %d\n", currInkMined)
-	return currInkMined
+	lastOne := len(blockChain) - 1
+	remainInk := blockChain[lastOne].MinerInks[globalPubKeyStr]
+	return remainInk.inkRemain
 }
 
 // TODO:
@@ -743,16 +679,16 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 	fmt.Println("@@@ADDDD1", args.ShapeSvgString)
 	spentInk, err := SvgHelper.AddShapeToMap(args.ShapeSvgString, args.ArtNodePK, args.Fill,
 		remainInk, previousMap)
-	fmt.Println("@@@ink remaining!!!! %d-------------------------", remainInk, err)
 
 	currentInkRemain := remainInk - spentInk
+	fmt.Println("@@@ink remaining!!!! %d-----------spend!!!! %d-------currentinkRemain %d-------", remainInk, spentInk, currentInkRemain)
 	if err != nil {
 		return err
 	}
 
 	pkStr := getPubKeyInStr(myPrivKey.PublicKey)
 	shapeHash := computeNonceSecretHash(svgStr, pkStr) // use miner's public key
-	newOp := Operation{svgStr, shapeHash, args.ArtNodePK}
+	newOp := Operation{svgStr, shapeHash, args.ArtNodePK, args.ShapeSvgString, args.Fill}
 
 	lastOne := len(blockChain) - 1
 	var newBlock Block
@@ -768,21 +704,23 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 	newOps := blockChain[lastOne].Ops
 	newOps = append(newOps, newOp)
 	mInks := blockChain[lastOne].MinerInks
-	incAcc := mInks[myKeyPairInString]
+	incAcc := mInks[globalPubKeyStr]
 	incAcc.inkRemain = uint32(currentInkRemain)
 	fmt.Println("@@@ADD23DD")
 
 	inkSpent, inkMined := totalInkSpentAndMinedByMiner(blockChain, pkStr)
 	incAcc.inkMined = inkMined
 	incAcc.inkSpent = uint32(spentInk) + inkSpent
-	mInks[myKeyPairInString] = incAcc
+	fmt.Println("@@@in incAcc inkMined!!!! %d-----------inkSpent!!!! %d-------incAcc.inkRemain %d-------", inkMined, incAcc.inkSpent, incAcc.inkRemain)
+
+	mInks[globalPubKeyStr] = incAcc
 
 	canvOps := blockChain[lastOne].CanvasOperations
-	myOps := canvOps[myKeyPairInString]
+	myOps := canvOps[globalPubKeyStr]
 	svgAndHash := svgStr + ":" + shapeHash
 	myOps = append(myOps, svgAndHash)
-	canvOps[myKeyPairInString] = myOps
-	newBlock = Block{preHash, 0, newOps, false, myKeyPairInString, lastOne + 1, mInks,
+	canvOps[globalPubKeyStr] = myOps
+	newBlock = Block{preHash, 0, newOps, false, globalPubKeyStr, lastOne + 1, mInks,
 		previousMap, canvOps} // need update CanvasInks
 	blockHash, nonce := calculateHash(newBlock, settings.PoWDifficultyOpBlock)
 	tmp, _ := strconv.ParseUint(nonce, 10, 32)
@@ -820,53 +758,64 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 	if lastOne < 0 {
 		return InvalidShapeHashError(args.shapeHash)
 	}
+	fmt.Print("##KKKKK3333333333KK")
 	operations := blockChain[lastOne].Ops
 	for i := 0; i < len(operations); i++ {
 		if operations[i].OpSig == args.shapeHash {
 			if args.ArtNodePK == operations[i].PubKeyArtNode {
 
-				// newOp := Operation{"delete", args.shapeHash, args.ArtNodePK}
-				// newBlock, err1 := generateBlock(blockChain[lastOne])
-				// var noOp uint8
-				// if blockChain[lastOne].NoOpBlock {
-				// 	noOp = settings.PoWDifficultyNoOpBlock
-				// } else {
-				// 	noOp = settings.PoWDifficultyOpBlock
-				// }
-				// preHash, _ := calculateHash(blockChain[lastOne], noOp)
+				fmt.Print("##KKKKKKK")
+				newOp := Operation{"delete", args.shapeHash, args.ArtNodePK, "", ""}
+				newBlock, _ := generateBlock(blockChain[lastOne])
+				var noOp uint8
+				if blockChain[lastOne].NoOpBlock {
+					noOp = settings.PoWDifficultyNoOpBlock
+				} else {
+					noOp = settings.PoWDifficultyOpBlock
+				}
+				preHash, _ := calculateHash(blockChain[lastOne], noOp)
 
-				// newOps := blockChain[lastOne].Ops
-				// newOps = append(newOps, newOp)
+				newOps := blockChain[lastOne].Ops
+				newOps = append(newOps, newOp)
 
-				// operations[i].AppShape
+				lastBlk := blockChain[lastOne]
+				mInks := lastBlk.MinerInks
+				incAcc := mInks[globalPubKeyStr]
+				previousMap := lastBlk.CanvasInks
 
-				// maptmp := make(map[string]SvgHelper.MapPoint)
-				// returnedInk:=SvgHelper.RemoveShapeFromMap()
-				// mInks := blockChain[lastOne].MinerInks
-				// incAcc := mInks[myKeyPairInString]
-				// incAcc.inkRemain = uint32(currentInkRemain)
-				// fmt.Println("@@@ADD23DD")
+				returnedInk, err2 := SvgHelper.RemoveShapeFromMap(operations[i].ShapeCommand, args.ArtNodePK,
+					operations[i].ShapeFill, previousMap)
 
-				// inkSpent, inkMined:=totalInkSpentAndMinedByMiner(blockChain, pkStr)
-				// incAcc.inkMined = inkMined
-				// incAcc.inkSpent = uint32(spentInk)+inkSpent
-				// mInks[myKeyPairInString] = incAcc
+				incAcc.inkRemain = incAcc.inkRemain + uint32(returnedInk)
+				fmt.Println("@@@ADD23DD")
 
-				// canvOps := blockChain[lastOne].CanvasOperations
-				// myOps := canvOps[myKeyPairInString]
-				// svgAndHash := svgStr + ":" + shapeHash
-				// myOps = append(myOps, svgAndHash)
-				// canvOps[myKeyPairInString] = myOps
-				// newBlock = Block{preHash, 0, newOps, false, myKeyPairInString, lastOne + 1, mInks,
-				// 	blockChain[lastOne].CanvasInks, canvOps} // need update CanvasInks myKeyPairInString
-				// blockHash, nonce := calculateHash(newBlock, settings.PoWDifficultyOpBlock)
-				// tmp, _ := strconv.ParseUint(nonce, 10, 32)
-				// newBlock.Nonce = uint32(tmp)
-				// blockChain = append(blockChain, newBlock)
+				incAcc.inkSpent = incAcc.inkSpent - uint32(returnedInk)
 
-				ink := blockChain[lastOne].MinerInks[myKeyPairInString]
+				mInks[globalPubKeyStr] = incAcc
+
+				canvOps := blockChain[lastOne].CanvasOperations
+				myOps := canvOps[globalPubKeyStr]
+				svgAndHash := "delete:" + args.shapeHash
+				myOps = append(myOps, svgAndHash)
+				canvOps[globalPubKeyStr] = myOps
+				newBlock = Block{preHash, 0, newOps, false, globalPubKeyStr, lastOne + 1, mInks,
+					previousMap, canvOps} // need update CanvasInks globalPubKeyStr
+				_, nonce := calculateHash(newBlock, settings.PoWDifficultyOpBlock)
+				tmp, _ := strconv.ParseUint(nonce, 10, 32)
+				newBlock.Nonce = uint32(tmp)
+				blockChain = append(blockChain, newBlock)
+
+				for {
+					last := len(blockChain) - 1
+					if last > lastOne+int(args.validateNum) {
+						break
+					}
+					time.Sleep(3 * time.Second)
+				}
+				ink := blockChain[lastOne].MinerInks[globalPubKeyStr]
+>>>>>>> 965f520dfc70398a3ed6f68e92373d394ed4a67b
 				*inkRemaining = ink.inkRemain
-				return nil
+				return err2
 			}
 			return ShapeOwnerError(args.shapeHash)
 		}
@@ -985,15 +934,19 @@ func (m *MinerToMinerRPC) EstablishReverseRPC(addr string, reply *string) error 
 func (m *MinerToMinerRPC) SendBlockchain(bc []Block, reply *string) error {
 	// 1. Check if the sent block is longer than our block.
 	if isSentChainLonger(bc) {
+		fmt.Println("sbc: Received a longer chain than what we have.")
 		// 1.2 If the sent block <bc> is longer, validate that it is a good block chain
 		if validateSufficientInkAll(bc) && validateBlockChain(bc) {
 			// 2.2 Otherwise acquire the lock for global blockchain and set it to sent block
+			fmt.Println("sbc: longer chain is valid, we'll throw ours away")
 			blockChain = bc
+			*reply = strconv.FormatBool(true)
 			return nil
 		}
 		// 2.1 If the longer sent block <bc> is bad, silently return
 	}
 	// 1.1 If the sent block <bc> is not longer, silently return
+	*reply = strconv.FormatBool(false)
 	return nil
 }
 

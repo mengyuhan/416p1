@@ -58,6 +58,12 @@ func main() {
 	}
 	fmt.Print(shapeHash2, blockHash2, ink2)
 
+	inkRm, err3 := canvas.DeleteShape(3, shapeHash)
+	if checkError(err3) != nil {
+		return
+	}
+	fmt.Print("####", inkRm)
+
 	// Close the canvas.
 	ink4, err := canvas.CloseCanvas()
 	if checkError(err) != nil {
