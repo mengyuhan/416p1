@@ -144,17 +144,15 @@ func AddShapeToMap(svgString string, publicKey string, shapeType string, minerIn
 	return ink, nil
 }
 
-// remove shape from map struct mapPoints
+// remove shape from map struct mapPoints, return ink returned
 // args:
 // - svgString : passed from client
 // - shapType : fill or transparent
-// - minerInk : currrent ink miner has
 /////////////////
 // Can return the following errors:
 // - DisconnectedError
 // - ShapeOwnerError
 // - OutofBoundError: if any point is outside canvas size, return error
-// - InsufficientInkError: if given minerInk is less then ink needed
 // - InvalidShapeSvgStringError: if given filled type with not closed shape
 func RemoveShapeFromMap(svgString string, publicKey string, shapeType string, minerInk int, mapPoints map[string]MapPoint) (ink int, err error) {
 	var transparentMapPoints map[int]point
@@ -162,7 +160,7 @@ func RemoveShapeFromMap(svgString string, publicKey string, shapeType string, mi
 	var close bool
 	//var close bool
 	if shapeType == "transparent" {
-		transparentMapPoints, ink, _, err = TransparentSvgToCoord(svgString, publicKey, minerInk)
+		transparentMapPoints, ink, _, err = RemoveTransparentSvgToCoord(svgString, publicKey)
 		if err != nil {
 			fmt.Println(err)
 			return 0, err
@@ -181,7 +179,7 @@ func RemoveShapeFromMap(svgString string, publicKey string, shapeType string, mi
 		}
 		// filled
 	} else {
-		transparentMapPoints, _, close, err = TransparentSvgToCoord(svgString, publicKey, minerInk)
+		transparentMapPoints, _, close, err = RemoveTransparentSvgToCoord(svgString, publicKey)
 		if !close {
 			err = InvalidShapeSvgStringError(svgString)
 			fmt.Println(err)
@@ -518,9 +516,303 @@ func TransparentSvgToCoord(svgString string, publicKey string, minerInk int) (lo
 	println(ink)
 	if ink > minerInk {
 		ink32 := int32(ink)
-		fmt.Printf("-------------------------------not enough ink------------------------\n")
+		fmt.Printf("-------------------------------not enough ink---need %d----have %d-----------------\n", ink, minerInk)
 		err = InsufficientInkError(ink32)
 		return localMapPoints, ink, close, err
+	}
+	return localMapPoints, ink, close, nil
+}
+
+// this helper function convert from svg string to coordinates in the map
+// return :
+// localMapPoints map[int]point: Map of Points of this svg
+// ink int: needed to draw such svgpath
+// close bool: if svg is closed or not
+// err error:
+// 1: OutofBoundError: if any point is outside canvas size, return error
+func RemoveTransparentSvgToCoord(svgString string, publicKey string) (localMapPoints map[int]point, ink int, close bool, err error) {
+	initialPoint := point{x: 0, y: 0}
+	endPoint := point{x: 0, y: 0}
+	currentPoint := point{x: 0, y: 0}
+	var temPoint point
+	var p point
+	var j int
+	var s3 string
+	var points []point
+	ink = 0
+	close = false
+	localMapPoints = make(map[int]point)
+	index := 0
+	i := 0
+	for i < len(svgString) {
+		s := string(svgString[i : i+1])
+		//println(s)
+		if s == "M" || s == "m" {
+			s2 := s
+			i++
+			isNumber := false
+			// parse string before next letter
+			s = string(svgString[i : i+1])
+			isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+			for s == " " {
+				i++
+				s = string(svgString[i : i+1])
+				isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+
+			}
+			// parse x
+			if isNumber {
+				for isNumber {
+					s3 += s
+					i++
+					s = string(svgString[i : i+1])
+					isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+				}
+				num, _ := strconv.Atoi(s3)
+				if s2 == "M" {
+					initialPoint.x = num
+					currentPoint.x = num
+				} else {
+					initialPoint.x = num + initialPoint.x
+					currentPoint.x = num + currentPoint.x
+				}
+				// println("x1")
+				// println(initialPoint.x)
+				s3 = ""
+			}
+			for s == " " {
+				i++
+				s = string(svgString[i : i+1])
+				isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+			}
+			// parse y
+			if isNumber {
+				for isNumber {
+					s3 += s
+					i++
+					s = string(svgString[i : i+1])
+					isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+				}
+				num, _ := strconv.Atoi(s3)
+				if s2 == "M" {
+					initialPoint.y = num
+					currentPoint.y = num
+				} else {
+					initialPoint.y = num + initialPoint.y
+					currentPoint.y = num + currentPoint.y
+				}
+				if !checkCanvasSize(currentPoint) {
+					err = OutOfBoundsError{}
+					return localMapPoints, ink, close, err
+				}
+				// println("y1")
+				// println(initialPoint.y)
+				s3 = ""
+			}
+		}
+		if s == "L" || s == "l" {
+			s2 := s
+			i++
+			isNumber := false
+			// parse string before next letter
+			s = string(svgString[i : i+1])
+			isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+			for s == " " && len(svgString) > i {
+				i++
+				s = string(svgString[i : i+1])
+				isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+			}
+			// parse x
+			if isNumber {
+				for isNumber && len(svgString) > i {
+					s3 += s
+					i++
+					s = string(svgString[i : i+1])
+					isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+				}
+				num, _ := strconv.Atoi(s3)
+				if s2 == "L" {
+					temPoint.x = num
+				} else {
+					temPoint.x = num + currentPoint.x
+				}
+				// println("x3")
+				// println(temPoint.x)
+				s3 = ""
+			}
+			for s == " " && len(svgString) > i {
+				i++
+				s = string(svgString[i : i+1])
+				isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+			}
+			// parse y
+			if isNumber {
+				for isNumber && len(svgString) > i {
+					s3 += s
+					i++
+					if len(svgString) > i {
+						s = string(svgString[i : i+1])
+					}
+					isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+				}
+				num, _ := strconv.Atoi(s3)
+				if s2 == "L" {
+					temPoint.y = num
+				} else {
+					temPoint.y = num + currentPoint.y
+				}
+				// println("y3")
+				// println(temPoint.y)
+				s3 = ""
+			}
+			if !checkCanvasSize(temPoint) {
+				err = OutOfBoundsError{}
+				return localMapPoints, ink, close, err
+			}
+			// detect conflict and put points into map
+			//fmt.Printf("in L, temPoint.x %d,temPoint.y %d,currentPoint.x %d,currentPoint.y %d\n", temPoint.x, temPoint.y, currentPoint.x, currentPoint.y)
+			points = getPointsFromVertex(currentPoint.x, temPoint.x, currentPoint.y, temPoint.y)
+			for j, p = range points {
+				localMapPoints[index+j] = p
+			}
+			index = index + j
+			// for key, value := range localMapPoints {
+			// 	fmt.Printf("in L's localMapPoints, key %d, pstring %s, index %d\n", key, value, index)
+			// }
+			currentPoint = temPoint
+			endPoint = temPoint
+		}
+		if s == "H" || s == "h" {
+			s2 := s
+			temPoint.y = currentPoint.y
+			i++
+			isNumber := false
+			// parse string before next letter
+			s = string(svgString[i : i+1])
+			isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+			for s == " " && len(svgString) > i {
+				i++
+				s = string(svgString[i : i+1])
+				isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+			}
+			// parse x
+			if isNumber {
+				for isNumber && len(svgString) > i {
+					s3 += s
+					i++
+					if len(svgString) > i {
+						s = string(svgString[i : i+1])
+					}
+					isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+				}
+				num, _ := strconv.Atoi(s3)
+				if s2 == "H" {
+					temPoint.x = num
+				} else {
+					temPoint.x = num + currentPoint.x
+				}
+				// println("x3")
+				// println(temPoint.x)
+				s3 = ""
+			}
+			if !checkCanvasSize(temPoint) {
+				err = OutOfBoundsError{}
+				return localMapPoints, ink, close, err
+			}
+			// detect conflict and put points into map
+			//fmt.Printf("in H, temPoint.x %d,temPoint.y %d,currentPoint.x %d,currentPoint.y %d\n", temPoint.x, temPoint.y, currentPoint.x, currentPoint.y)
+			points = getPointsFromVertex(currentPoint.x, temPoint.x, currentPoint.y, temPoint.y)
+			for j, p = range points {
+				localMapPoints[index+j] = p
+			}
+			index = index + j
+			// for key, value := range localMapPoints {
+			// 	fmt.Printf("in H's localMapPoints, key %d, pstring %s, index %d\n", key, value, index)
+			// }
+			currentPoint = temPoint
+			endPoint = temPoint
+		}
+		if s == "V" || s == "v" {
+			s2 := s
+			temPoint.x = currentPoint.x
+			i++
+			isNumber := false
+			// parse string before next letter
+			s = string(svgString[i : i+1])
+			isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+			for s == " " && len(svgString) > i {
+				i++
+				s = string(svgString[i : i+1])
+				isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+			}
+			// parse y
+			if isNumber {
+				for isNumber && len(svgString) > i {
+					s3 += s
+					i++
+					if len(svgString) > i {
+						s = string(svgString[i : i+1])
+					}
+					isNumber, _ = regexp.MatchString("[0-9]|[-]", s)
+				}
+				num, _ := strconv.Atoi(s3)
+				if s2 == "V" {
+					temPoint.y = num
+				} else {
+					temPoint.y = num + currentPoint.y
+				}
+				// println("y3")
+				// println(num)
+				s3 = ""
+			}
+			if !checkCanvasSize(temPoint) {
+				err = OutOfBoundsError{}
+				return localMapPoints, ink, close, err
+			}
+			// detect conflict and put points into map
+			//fmt.Printf("in V, temPoint.x %d,temPoint.y %d,currentPoint.x %d,currentPoint.y %d\n", temPoint.x, temPoint.y, currentPoint.x, currentPoint.y)
+			points = getPointsFromVertex(currentPoint.x, temPoint.x, currentPoint.y, temPoint.y)
+			for j, p = range points {
+				localMapPoints[index+j] = p
+			}
+			index = index + j
+			// for key, value := range localMapPoints {
+			// 	fmt.Printf("in V's localMapPoints, key %d, pstring %s, index %d\n", key, value, index)
+			// }
+			currentPoint = temPoint
+			endPoint = temPoint
+		}
+		if s == "Z" || s == "z" {
+			temPoint.x = initialPoint.x
+			temPoint.y = initialPoint.y
+			i++
+			// parse string before next letter
+			for s == " " && len(svgString) > i {
+				i++
+				if len(svgString) > i {
+					s = string(svgString[i : i+1])
+				}
+			}
+			// detect conflict and put points into map
+			//fmt.Printf("in Z, temPoint.x %d,temPoint.y %d,currentPoint.x %d,currentPoint.y %d\n", temPoint.x, temPoint.y, currentPoint.x, currentPoint.y)
+			points = getPointsFromVertex(currentPoint.x, temPoint.x, currentPoint.y, temPoint.y)
+			// remove the last point because its the same as very first vertex
+			points = points[:len(points)-1]
+			for j, p = range points {
+				localMapPoints[index+j] = p
+			}
+			index = index + j
+			currentPoint = temPoint
+			endPoint = temPoint
+		}
+		i++
+	}
+	if endPoint == initialPoint {
+		close = true
+	}
+	for key, value := range localMapPoints {
+		fmt.Printf("in localMapPoints, key %d, pstring %s\n", key, value)
+		ink++
 	}
 	return localMapPoints, ink, close, nil
 }
@@ -711,10 +1003,70 @@ func FilledSvgToPolygon(transparentMapPoints map[int]point, publicKey string, mi
 			}
 		}
 	}
-	//println(ink)
+
+	fmt.Printf("in polygon close and ink--------------------------------------------------------------\n")
+	println(ink)
 	if ink > minerInk {
 		ink32 := int32(ink)
+		fmt.Printf("-------------------------------not enough ink---need %d----have %d-----------------\n", ink, minerInk)
 		return polygon, ink, InsufficientInkError(ink32)
+	}
+	//printPolygon(polygon)
+
+	return polygon, ink, nil
+}
+
+// this helper function convert from transparent line of point to array of points inside polygon
+// return list of Points of polygon and ink returned
+// - InsufficientInkError: if given minerInk is less then ink needed
+func RemoveFilledSvgToPolygon(transparentMapPoints map[int]point, publicKey string) (polygon [][]bool, ink int, err error) {
+	maxY := 0
+	maxX := 0
+	ink = 0
+	for _, value := range transparentMapPoints {
+		if value.x > maxX {
+			maxX = value.x
+		}
+		if value.y > maxY {
+			maxY = value.y
+		}
+	}
+	//fmt.Printf("maxY %d, maxX %d\n", maxY, maxX)
+	polygon = make([][]bool, maxY+1)
+	for i := range polygon {
+		polygon[i] = make([]bool, maxX+1)
+	}
+	for _, value := range transparentMapPoints {
+		// fmt.Printf("x %d, y %d\n", value.x, value.y)
+		polygon[value.y][value.x] = true
+	}
+	//printPolygon(polygon)
+	// fill all points inside polygon
+	for j := range polygon {
+		include := false
+		count := 0
+		for k := range polygon[j] {
+			if polygon[j][k] {
+				count++
+			}
+		}
+		if count == 1 {
+			ink++
+		}
+		if count > 1 {
+			// apply algorithm that include points between two vertex
+			for k := range polygon[j] {
+				if polygon[j][k] {
+					include = !include
+					ink++
+				} else {
+					if include {
+						polygon[j][k] = true
+						ink++
+					}
+				}
+			}
+		}
 	}
 	//printPolygon(polygon)
 

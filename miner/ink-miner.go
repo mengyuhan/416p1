@@ -308,7 +308,7 @@ func main() {
 	// fmt.Println(getBlockchain())
 
 	for {
-		sleep_time := 100 * time.Millisecond
+		sleep_time := 3000 * time.Millisecond
 		time.Sleep(sleep_time)
 
 		fmt.Println("Main still alive")
@@ -745,7 +745,7 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 	fmt.Println("@@@ADDDD1", args.ShapeSvgString)
 	spentInk, err := SvgHelper.AddShapeToMap(args.ShapeSvgString, args.ArtNodePK, args.Fill,
 		remainInk, previousMap)
-	fmt.Println("@@@ink remaining!!!! %d-------------------------", remainInk, err)
+	fmt.Println("@@@ink remaining!!!! %d-----------spend!!!! %d--------------", remainInk, spentInk)
 
 	currentInkRemain := remainInk - spentInk
 	if err != nil {
