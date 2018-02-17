@@ -294,11 +294,7 @@ func main() {
 	go monitorNumConnections(ipPort)
 
 	for {
-<<<<<<< HEAD
-		sleep_time := 1000 * time.Millisecond
-=======
 		sleep_time := 3000 * time.Millisecond
->>>>>>> 0509264fb1ccb25b9e9a497b69194d175f001c36
 		time.Sleep(sleep_time)
 
 		fmt.Println("Main still alive")
@@ -664,11 +660,9 @@ func minerInkRemain() uint32 {
 	if len(blockChain) == 0 {
 		return 0
 	}
-	//lastOne := len(blockChain) - 1
-	//remainInk := blockChain[lastOne].MinerInks[getPubKeyInStr(myPrivKey.PublicKey)]
-	//return remainInk.inkRemain
-	fmt.Printf("Remaining ink: %d\n", currInkMined)
-	return currInkMined
+	lastOne := len(blockChain) - 1
+	remainInk := blockChain[lastOne].MinerInks[globalPubKeyStr]
+	return remainInk.inkRemain
 }
 
 // TODO:
@@ -782,7 +776,7 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 
 				lastBlk := blockChain[lastOne]
 				mInks := lastBlk.MinerInks
-				incAcc := mInks[myKeyPairInString]
+				incAcc := mInks[globalPubKeyStr]
 				previousMap := lastBlk.CanvasInks
 
 				returnedInk, err2 := SvgHelper.RemoveShapeFromMap(operations[i].ShapeCommand, args.ArtNodePK,
@@ -793,15 +787,15 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 
 				incAcc.inkSpent = incAcc.inkSpent - uint32(returnedInk)
 
-				mInks[myKeyPairInString] = incAcc
+				mInks[globalPubKeyStr] = incAcc
 
 				canvOps := blockChain[lastOne].CanvasOperations
-				myOps := canvOps[myKeyPairInString]
+				myOps := canvOps[globalPubKeyStr]
 				svgAndHash := "delete:" + args.shapeHash
 				myOps = append(myOps, svgAndHash)
-				canvOps[myKeyPairInString] = myOps
-				newBlock = Block{preHash, 0, newOps, false, myKeyPairInString, lastOne + 1, mInks,
-					previousMap, canvOps} // need update CanvasInks myKeyPairInString
+				canvOps[globalPubKeyStr] = myOps
+				newBlock = Block{preHash, 0, newOps, false, globalPubKeyStr, lastOne + 1, mInks,
+					previousMap, canvOps} // need update CanvasInks globalPubKeyStr
 				_, nonce := calculateHash(newBlock, settings.PoWDifficultyOpBlock)
 				tmp, _ := strconv.ParseUint(nonce, 10, 32)
 				newBlock.Nonce = uint32(tmp)
@@ -814,7 +808,7 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 					}
 					time.Sleep(3 * time.Second)
 				}
-				ink := blockChain[lastOne].MinerInks[myKeyPairInString]
+				ink := blockChain[lastOne].MinerInks[globalPubKeyStr]
 				*inkRemaining = ink.inkRemain
 				return err2
 			}
