@@ -49,7 +49,7 @@ func main() {
 		// return
 	}
 	println("----------------------------")
-	fmt.Print(shapeHash, blockHash, ink)
+	fmt.Println(shapeHash, blockHash, ink)
 	println("----------------------------")
 	// // Add another line.
 	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 5 0", "transparent", "blue")
