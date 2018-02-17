@@ -109,9 +109,9 @@ type PixelState struct {
 }
 
 type InkAccount struct {
-	inkMined  uint32
-	inkSpent  uint32
-	inkRemain uint32
+	InkMined  uint32
+	InkSpent  uint32
+	InkRemain uint32
 }
 
 type Block struct {
@@ -152,7 +152,7 @@ Structs for RPC calls for miner2miner
 type Miner2MinerRPCs interface {
 	PrintText(textToPrint string, reply *string) error
 	EstablishReverseRPC(addr string, reply *string) error
-	SendBlockchain(bc *[]Block, reply *string) error
+	SendBlockChain(bc []Block, reply *string) error
 }
 
 // Interface between art app and ink miner
@@ -309,13 +309,8 @@ func main() {
 		fmt.Printf("lastOne index: %d\n", lastOne)
 		fmt.Printf("Last blk index: %d\n", blockChain[lastOne].Index)
 		//fmt.Printf("globalPubKeyStr: %s\n", globalPubKeyStr)
-		inkMinedRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkMined
-		inkRemainingRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkRemain
-<<<<<<< HEAD
-		currInkMined = inkMinedRightNow
-=======
-
->>>>>>> 584c101e4480d9b694c2314c85b4acf3c282cc88
+		inkMinedRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].InkMined
+		inkRemainingRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].InkRemain
 		fmt.Printf("My ink mined is %d remaining is: %d\n", inkMinedRightNow, inkRemainingRightNow)
 	}
 }
@@ -364,15 +359,15 @@ func generateNoOpBlock(minerPubKey string) Block {
 	if myInkAccount, ok := oldMinerInks[minerPubKey]; ok {
 		fmt.Println("incrementing ink")
 		fmt.Println(myInkAccount)
-		myInkAccount.inkMined = myInkAccount.inkMined + settings.InkPerNoOpBlock
-		myInkAccount.inkRemain = myInkAccount.inkRemain + settings.InkPerNoOpBlock
+		myInkAccount.InkMined = myInkAccount.InkMined + settings.InkPerNoOpBlock
+		myInkAccount.InkRemain = myInkAccount.InkRemain + settings.InkPerNoOpBlock
 		oldMinerInks[minerPubKey] = myInkAccount
-		str := minerPubKey
-		fmt.Printf("in gen noop block: %s\n", str)
+		//str := minerPubKey
+		//fmt.Printf("in gen noop block: %s\n", str)
 		blk.MinerInks = oldMinerInks
 	} else {
 		fmt.Println("setting ink for first time")
-		oldMinerInks[minerPubKey] = InkAccount{inkMined: settings.InkPerNoOpBlock, inkSpent: 0, inkRemain: settings.InkPerNoOpBlock}
+		oldMinerInks[minerPubKey] = InkAccount{InkMined: settings.InkPerNoOpBlock, InkSpent: 0, InkRemain: settings.InkPerNoOpBlock}
 		fmt.Println(oldMinerInks)
 		blk.MinerInks = oldMinerInks
 	}
@@ -398,7 +393,7 @@ func generateBlock(oldBlock Block) (Block, error) {
 func generateFirstBlock() (Block, error) {
 	opsArr := make([]Operation, 0)
 	mInks := make(map[string]InkAccount)
-	mInks[globalPubKeyStr] = InkAccount{inkMined: settings.InkPerNoOpBlock, inkRemain: settings.InkPerNoOpBlock, inkSpent: 0}
+	mInks[globalPubKeyStr] = InkAccount{InkMined: settings.InkPerNoOpBlock, InkRemain: settings.InkPerNoOpBlock, InkSpent: 0}
 	cInks := make(map[string]SvgHelper.MapPoint)
 	cOps := make(map[string][]string)
 
@@ -413,6 +408,10 @@ func generateFirstBlock() (Block, error) {
 		CanvasInks:       cInks,
 		CanvasOperations: cOps,
 	}
+
+	_, currNonce := calculateHash(blk, settings.PoWDifficultyNoOpBlock)
+	nonceUInt64, _ := strconv.ParseUint(currNonce, 10, 32)
+	blk.Nonce = uint32(nonceUInt64)
 
 	return blk, nil
 }
@@ -606,14 +605,14 @@ func handleMiner(otherMiner rpc.Client, otherMinerAddr net.Addr) {
 	fmt.Println(reply)
 	for {
 		fmt.Println("Connection still alive")
-		sleep_time := 5000 * time.Millisecond
+		sleep_time := 10000 * time.Millisecond
 		time.Sleep(sleep_time)
 
 		var reply string
 		fmt.Println("Sending block chain to neighbour")
-		err := otherMiner.Call("SendBlockChain", &blockChain, &reply)
+		err := otherMiner.Call("MinerToMinerRPC.SendBlockChain", blockChain, &reply)
 		if err != nil {
-			fmt.Println("Sendblockchain RPC call err, ", err)
+			fmt.Println("SendblockChain RPC call err, ", err)
 		}
 		fmt.Printf("Did other side receive it?: %s\n", reply)
 	}
@@ -669,7 +668,7 @@ func minerInkRemain() uint32 {
 	}
 	lastOne := len(blockChain) - 1
 	remainInk := blockChain[lastOne].MinerInks[globalPubKeyStr]
-	return remainInk.inkRemain
+	return remainInk.InkRemain
 }
 
 // TODO:
@@ -714,10 +713,10 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 	fmt.Println("@@@ADD23DD")
 
 	_, inkMined := totalInkSpentAndMinedByMiner(blockChain, pkStr)
-	incAcc.inkMined = inkMined
-	incAcc.inkSpent = uint32(spentInk) + incAcc.inkSpent
-	incAcc.inkRemain = inkMined - incAcc.inkSpent
-	fmt.Println("@@@in incAcc inkMined!!!! %d-----------inkSpent!!!! %d-------incAcc.inkRemain %d-------", inkMined, incAcc.inkSpent, incAcc.inkRemain)
+	incAcc.InkMined = inkMined
+	incAcc.InkSpent = uint32(spentInk) + incAcc.InkSpent
+	incAcc.InkRemain = inkMined - incAcc.InkSpent
+	fmt.Println("@@@in incAcc inkMined!!!! %d-----------inkSpent!!!! %d-------incAcc.inkRemain %d-------", inkMined, incAcc.InkSpent, incAcc.InkRemain)
 
 	mInks[globalPubKeyStr] = incAcc
 
@@ -793,10 +792,10 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 				returnedInk, err2 := SvgHelper.RemoveShapeFromMap(operations[i].ShapeCommand, args.ArtNodePK,
 					operations[i].ShapeFill, previousMap)
 
-				incAcc.inkRemain = incAcc.inkRemain + uint32(returnedInk)
+				incAcc.InkRemain = incAcc.InkRemain + uint32(returnedInk)
 				fmt.Println("@@@ADD23DD")
 
-				incAcc.inkSpent = incAcc.inkSpent - uint32(returnedInk)
+				incAcc.InkSpent = incAcc.InkSpent - uint32(returnedInk)
 
 				mInks[globalPubKeyStr] = incAcc
 
@@ -821,7 +820,7 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 				}
 				ink := blockChain[lastOne].MinerInks[globalPubKeyStr]
 
-				*inkRemaining = ink.inkRemain
+				*inkRemaining = ink.InkRemain
 				return err2
 			}
 			return ShapeOwnerError(args.shapeHash)
@@ -905,7 +904,7 @@ func (m *MinerRPC) CloseCanvas(args int, reply *CloseCanvReply) error {
 	}
 	ink := blockChain[lastOne].MinerInks[myKeyPairInString]
 
-	*reply = CloseCanvReply{blockChain[lastOne].Ops, ink.inkRemain}
+	*reply = CloseCanvReply{blockChain[lastOne].Ops, ink.InkRemain}
 	fmt.Println("@@@ CloseCanvas")
 	return nil
 }
@@ -938,16 +937,18 @@ func (m *MinerToMinerRPC) EstablishReverseRPC(addr string, reply *string) error 
 	return nil
 }
 
-func (m *MinerToMinerRPC) SendBlockchain(bc *[]Block, reply *string) error {
+func (m *MinerToMinerRPC) SendBlockChain(bc []Block, reply *string) error {
 	// 1. Check if the sent block is longer than our block.
 	fmt.Println("Inside sbc")
-	if isSentChainLonger(*bc) {
+	if isSentChainLonger(bc) {
 		fmt.Println("sbc: Received a longer chain than what we have.")
+		val := validateBlockChain(bc)
+		fmt.Printf("Good block chain: %s\n", strconv.FormatBool(val))
 		// 1.2 If the sent block <bc> is longer, validate that it is a good block chain
-		if validateSufficientInkAll(*bc) && validateBlockChain(*bc) {
+		if validateSufficientInkAll(bc) && validateBlockChain(bc) {
 			// 2.2 Otherwise acquire the lock for global blockchain and set it to sent block
 			fmt.Println("sbc: longer chain is valid, we'll throw ours away")
-			blockChain = *bc
+			blockChain = bc
 			*reply = strconv.FormatBool(true)
 			return nil
 		}
@@ -1099,9 +1100,6 @@ func totalInkSpentAndMinedByMiner(bc []Block, miner string) (inkSpent, inkMined 
 func validateSufficientInkMiner(bc []Block, key string) bool {
 	// the miner is identified by their key
 	inkSpent, inkMined := totalInkSpentAndMinedByMiner(bc, key)
-	fmt.Println("v")
-	fmt.Println(inkSpent)
-	fmt.Println(inkMined)
 	if inkMined >= inkSpent {
 		return true
 	}
@@ -1129,7 +1127,7 @@ func validateSufficientInkAll(bc []Block) bool {
 // the current block that they are generating.
 func haveEnoughInkToCommitOperations(ops []Operation, b Block, miner string) bool {
 	cost := costOfOperations(ops)
-	if cost > b.MinerInks[miner].inkRemain {
+	if cost > b.MinerInks[miner].InkRemain {
 		return false
 	}
 
@@ -1199,6 +1197,7 @@ func validateBlockHashNonce(b Block) (bool, string) {
 	//    has requisite number of zeros
 	if b.Index > 1 {
 		if !hasNZeros(b.PrevHash, difficulty) {
+			fmt.Println("vbhn: doesn't have enough zeros")
 			return false, ""
 		}
 	}
@@ -1242,6 +1241,7 @@ func validateBlockChain(bc []Block) bool {
 	for _, b := range bc {
 		if b.Index > 1 {
 			if !(hashVal == b.PrevHash) {
+				fmt.Println("Current block's prevhash isn't right")
 				return false
 			}
 		}

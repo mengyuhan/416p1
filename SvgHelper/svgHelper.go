@@ -10,8 +10,8 @@ import (
 // var mapPoints map[string]MapPoint
 
 type MapPoint struct {
-	count     int
-	publicKey string
+	Count     int
+	PublicKey string
 }
 
 type point struct {
@@ -823,7 +823,7 @@ func checkOverlap(p point, publicKey string, mapPoints map[string]MapPoint) bool
 	mappoint, exist := mapPoints[pString]
 	if exist {
 		//check public key
-		if mappoint.publicKey == publicKey {
+		if mappoint.PublicKey == publicKey {
 			return false
 		}
 		return true
@@ -837,10 +837,10 @@ func addPoint(p point, publicKey string, mapPoints map[string]MapPoint) {
 	pString := strconv.Itoa(p.x) + "," + strconv.Itoa(p.y)
 	mappoint, exist := mapPoints[pString]
 	if exist {
-		mappoint = MapPoint{count: mappoint.count + 1, publicKey: publicKey}
+		mappoint = MapPoint{Count: mappoint.Count + 1, PublicKey: publicKey}
 		mapPoints[pString] = mappoint
 	} else {
-		mappoint = MapPoint{count: 1, publicKey: publicKey}
+		mappoint = MapPoint{Count: 1, PublicKey: publicKey}
 		mapPoints[pString] = mappoint
 	}
 }
@@ -852,7 +852,7 @@ func havePoint(p point, publicKey string, mapPoints map[string]MapPoint) error {
 	mappoint, exist := mapPoints[pString]
 	if exist {
 		//check public key
-		if mappoint.publicKey == publicKey {
+		if mappoint.PublicKey == publicKey {
 			return nil
 		}
 		return ShapeOwnerError(pString)
@@ -865,8 +865,8 @@ func havePoint(p point, publicKey string, mapPoints map[string]MapPoint) error {
 func removePoint(p point, publicKey string, mapPoints map[string]MapPoint) {
 	pString := strconv.Itoa(p.x) + "," + strconv.Itoa(p.y)
 	mappoint, _ := mapPoints[pString]
-	mappoint.count--
-	if mappoint.count == 0 {
+	mappoint.Count--
+	if mappoint.Count == 0 {
 		delete(mapPoints, pString)
 	}
 }
