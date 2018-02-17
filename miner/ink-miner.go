@@ -306,22 +306,22 @@ func main() {
 	// sendBlockchainToMiners(neighbours)
 	// fmt.Println(getBlockchain())
 
-	for {
-		sleep_time := 3000 * time.Millisecond
-		time.Sleep(sleep_time)
+	// for {
+	// 	sleep_time := 1000 * time.Millisecond
+	// 	time.Sleep(sleep_time)
 
-		fmt.Println("Main still alive")
-		myPubKeyStr := getPubKeyInStr(myPrivKey.PublicKey)
-		globalPubKeyStr = myPubKeyStr
-		mineNoOpBlocks(myPubKeyStr)
-		fmt.Printf("Mined a block. Blockchain is now %d\n", len(blockChain))
-		lastOne := len(blockChain) - 1
-		fmt.Printf("Last blk index: %d\n", lastOne)
-		fmt.Printf("myPubKeyStr: %s\n", myPubKeyStr)
-		inkMinedRightNow := blockChain[lastOne].MinerInks[myPubKeyStr].inkMined
-		currInkMined = inkMinedRightNow
-		fmt.Printf("My ink is: %d\n", inkMinedRightNow)
-	}
+	// 	fmt.Println("Main still alive")
+	// 	myPubKeyStr := getPubKeyInStr(myPrivKey.PublicKey)
+	// 	globalPubKeyStr = myPubKeyStr
+	// 	mineNoOpBlocks(myPubKeyStr)
+	// 	fmt.Printf("Mined a block. Blockchain is now %d\n", len(blockChain))
+	// 	lastOne := len(blockChain) - 1
+	// 	fmt.Printf("Last blk index: %d\n", lastOne)
+	// 	fmt.Printf("myPubKeyStr: %s\n", myPubKeyStr)
+	// 	inkMinedRightNow := blockChain[lastOne].MinerInks[myPubKeyStr].inkMined
+	// 	currInkMined = inkMinedRightNow
+	// 	fmt.Printf("My ink is: %d\n", inkMinedRightNow)
+	// }
 }
 
 // This function mines NoOpBlocks idly

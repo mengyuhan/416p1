@@ -1002,6 +1002,7 @@ func FilledSvgToPolygon(transparentMapPoints map[int]point, publicKey string, mi
 				}
 			}
 		}
+		//fmt.Printf("in polygon row %d and ink %d--------------------------------------------------------------\n", j, ink)
 	}
 
 	fmt.Printf("in polygon close and ink--------------------------------------------------------------\n")
@@ -1043,7 +1044,6 @@ func RemoveFilledSvgToPolygon(transparentMapPoints map[int]point, publicKey stri
 	//printPolygon(polygon)
 	// fill all points inside polygon
 	for j := range polygon {
-		include := false
 		count := 0
 		for k := range polygon[j] {
 			if polygon[j][k] {
@@ -1052,10 +1052,12 @@ func RemoveFilledSvgToPolygon(transparentMapPoints map[int]point, publicKey stri
 		}
 		if count == 1 {
 			ink++
+			println("count = 1 ****************************")
 		}
 		if count > 1 {
 			// apply algorithm that include points between two vertex
 			for k := range polygon[j] {
+				include := false
 				if polygon[j][k] {
 					include = !include
 					ink++
