@@ -1,7 +1,6 @@
 /*
 
-A trivial application to illustrate how the blockartlib library can be
-used from an application in project 1 for UBC CS 416 2017W2.
+This art-app tries to draw something where it doesn't have the requisite amount of ink.
 
 Usage:
 go run art-app.go <miner-addr:art-app-port> <privKey>

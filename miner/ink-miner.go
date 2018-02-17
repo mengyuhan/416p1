@@ -313,7 +313,7 @@ func main() {
 		inkMinedRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkMined
 		inkRemainingRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkRemain
 		currInkMined = inkMinedRightNow
-		fmt.Printf("My ink mined is %d remaining is: %d\n", inkMinedRightNow,inkRemainingRightNow)
+		fmt.Printf("My ink mined is %d remaining is: %d\n", inkMinedRightNow, inkRemainingRightNow)
 	}
 }
 
@@ -813,7 +813,7 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 					time.Sleep(3 * time.Second)
 				}
 				ink := blockChain[lastOne].MinerInks[globalPubKeyStr]
->>>>>>> 965f520dfc70398a3ed6f68e92373d394ed4a67b
+
 				*inkRemaining = ink.inkRemain
 				return err2
 			}
