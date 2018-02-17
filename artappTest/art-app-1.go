@@ -48,7 +48,7 @@ func main() {
 	*************************/
 	shapeHash, blockHash, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 200 200 L 0 100", "transparent", "red")
 	if checkError(err) != nil {
-		// return
+		return
 	}
 	println("----------------------------")
 	fmt.Print(shapeHash, blockHash, ink)

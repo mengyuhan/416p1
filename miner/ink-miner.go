@@ -580,13 +580,13 @@ func connectToMiner(addr net.Addr) {
 		fmt.Println("Issue with EstablishReverseRPC", err)
 	}
 	fmt.Printf("Did other side connect to me?: %s\n", reply)
-	go handleMiner(*miner2minerRPC)
+	go handleMiner(*miner2minerRPC, addr)
 }
 
 /*
 A handler that handles all logic between two miners
 */
-func handleMiner(otherMiner rpc.Client) {
+func handleMiner(otherMiner rpc.Client, otherMinerAddr net.Addr) {
 	defer otherMiner.Close()
 	minersConnectedTo.Lock()
 	minersConnectedTo.currentNumNeighbours = minersConnectedTo.currentNumNeighbours + 1
@@ -607,7 +607,11 @@ func handleMiner(otherMiner rpc.Client) {
 
 		var reply string
 		fmt.Println("Sending block chain to neighbour")
-		otherMiner.Call("SendBlockChain", blockChain, &reply)
+
+		err := otherMiner.Call("SendBlockChain", &blockChain, &reply)
+		if err != nil {
+			fmt.Println("Sendblockchain RPC call err, ", err)
+		}
 		fmt.Printf("Did other side receive it?: %s\n", reply)
 	}
 }
@@ -893,7 +897,7 @@ func (m *MinerRPC) GetChildren(blockHash string, blockHashes *[]string) error {
 }
 
 func (m *MinerRPC) CloseCanvas(args int, reply *CloseCanvReply) error {
-
+	fmt.Println("@@@ CloseCanvas")
 	lastOne := len(blockChain) - 1
 	if lastOne < 0 {
 		*reply = CloseCanvReply{inkRemaining: 0}
@@ -902,7 +906,7 @@ func (m *MinerRPC) CloseCanvas(args int, reply *CloseCanvReply) error {
 	ink := blockChain[lastOne].MinerInks[myKeyPairInString]
 
 	*reply = CloseCanvReply{blockChain[lastOne].CanvasOperations, ink.inkRemain}
-	fmt.Println("@@@ CloseCanvas")
+
 	return nil
 }
 
