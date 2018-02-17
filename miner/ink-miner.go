@@ -152,7 +152,7 @@ Structs for RPC calls for miner2miner
 type Miner2MinerRPCs interface {
 	PrintText(textToPrint string, reply *string) error
 	EstablishReverseRPC(addr string, reply *string) error
-	SendBlockchain(bc []Block, reply *string) error
+	SendBlockchain(bc *[]Block, reply *string) error
 }
 
 // Interface between art app and ink miner
@@ -580,13 +580,13 @@ func connectToMiner(addr net.Addr) {
 		fmt.Println("Issue with EstablishReverseRPC", err)
 	}
 	fmt.Printf("Did other side connect to me?: %s\n", reply)
-	go handleMiner(*miner2minerRPC)
+	go handleMiner(*miner2minerRPC, addr)
 }
 
 /*
 A handler that handles all logic between two miners
 */
-func handleMiner(otherMiner rpc.Client) {
+func handleMiner(otherMiner rpc.Client, otherMinerAddr net.Addr) {
 	defer otherMiner.Close()
 	minersConnectedTo.Lock()
 	minersConnectedTo.currentNumNeighbours = minersConnectedTo.currentNumNeighbours + 1
@@ -607,7 +607,10 @@ func handleMiner(otherMiner rpc.Client) {
 
 		var reply string
 		fmt.Println("Sending block chain to neighbour")
-		otherMiner.Call("SendBlockChain", blockChain, &reply)
+		err := otherMiner.Call("SendBlockChain", &blockChain, &reply)
+		if err != nil {
+			fmt.Println("Sendblockchain RPC call err, ", err)
+		}
 		fmt.Printf("Did other side receive it?: %s\n", reply)
 	}
 }
@@ -711,7 +714,6 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 	incAcc.inkSpent = uint32(spentInk) + incAcc.inkSpent
 	incAcc.inkRemain = inkMined - incAcc.inkSpent
 	fmt.Printf("@@@in incAcc inkMined!!!! %d----------- total inkSpent!!!! %d------Inkspendthistime %d-------incAcc.inkRemain %d-------", inkMined, incAcc.inkSpent, spentInk, incAcc.inkRemain)
-
 	mInks[globalPubKeyStr] = incAcc
 
 	canvOps := blockChain[lastOne].CanvasOperations
@@ -757,9 +759,10 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 	if lastOne < 0 {
 		return InvalidShapeHashError(args.shapeHash)
 	}
-	fmt.Print("##KKKKK3333333333KK")
+	fmt.Print(args, "##KKK(99999)6KK")
 	operations := blockChain[lastOne].Ops
 	for i := 0; i < len(operations); i++ {
+		fmt.Print(args.shapeHash, "##KKK6666666KK", operations[i].OpSig)
 		if operations[i].OpSig == args.shapeHash {
 			if args.ArtNodePK == operations[i].PubKeyArtNode {
 
@@ -929,15 +932,16 @@ func (m *MinerToMinerRPC) EstablishReverseRPC(addr string, reply *string) error 
 	return nil
 }
 
-func (m *MinerToMinerRPC) SendBlockchain(bc []Block, reply *string) error {
+func (m *MinerToMinerRPC) SendBlockchain(bc *[]Block, reply *string) error {
 	// 1. Check if the sent block is longer than our block.
-	if isSentChainLonger(bc) {
+	fmt.Println("Inside sbc")
+	if isSentChainLonger(*bc) {
 		fmt.Println("sbc: Received a longer chain than what we have.")
 		// 1.2 If the sent block <bc> is longer, validate that it is a good block chain
-		if validateSufficientInkAll(bc) && validateBlockChain(bc) {
+		if validateSufficientInkAll(*bc) && validateBlockChain(*bc) {
 			// 2.2 Otherwise acquire the lock for global blockchain and set it to sent block
 			fmt.Println("sbc: longer chain is valid, we'll throw ours away")
-			blockChain = bc
+			blockChain = *bc
 			*reply = strconv.FormatBool(true)
 			return nil
 		}

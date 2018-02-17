@@ -1,7 +1,6 @@
 /*
 
-A trivial application to illustrate how the blockartlib library can be
-used from an application in project 1 for UBC CS 416 2017W2.
+This art-app tries to draw something where it doesn't have the requisite amount of ink.
 
 Usage:
 go run art-app.go <miner-addr:art-app-port> <privKey>
@@ -49,7 +48,7 @@ func main() {
 	*************************/
 	shapeHash, blockHash, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 200 200 L 0 100", "transparent", "red")
 	if checkError(err) != nil {
-		// return
+		return
 	}
 	println("----------------------------")
 	fmt.Print(shapeHash, blockHash, ink)
