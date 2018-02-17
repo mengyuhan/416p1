@@ -17,6 +17,7 @@ import (
 	"net/rpc"
 	"os"
 	"regexp"
+	"strings"
 )
 
 // Represents a type of shape in the BlockArt system.
@@ -232,7 +233,7 @@ type DelShapeArgs struct {
 }
 
 type CloseCanvReply struct {
-	Ops          []Operation
+	canvOps      map[string][]string
 	inkRemaining uint32
 }
 
@@ -386,12 +387,24 @@ func (c *MyCanvas) CloseCanvas() (inkRemaining uint32, err error) {
 	args := 0
 	var reply *CloseCanvReply
 	err = c.conn.Call("InkMinerRPC.CloseCanvas", args, &reply)
-	ops := (*reply).Ops
+	ops := (*reply).canvOps
+	tmpMap := make(map[string]string)
 	html := "<HTML>	<HEAD>	   <TITLE>A Small Hello	   </TITLE>	</HEAD>  <BODY>	<H1>Hi</H1>  <svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" height=\"190\">"
-	for i := 0; i < len(ops); i++ {
-		if ops[i].AppShape != "delete" {
-			html = html + ops[i].AppShape
+	for _, elem := range ops {
+		for k := 0; k < len(elem); k++ {
+			strs := strings.Split(elem[k], ":")
+			svgString := strs[0]
+			shapehash := strs[1]
+			if svgString != "delete" {
+				tmpMap[shapehash] = svgString
+			} else if svgString == "delete" {
+				delete(tmpMap, shapehash)
+			}
 		}
+	}
+
+	for _, val := range tmpMap {
+		html = html + val
 	}
 	html = html + "</svg>	<P>This is very minimal \"hello world\" HTML documen.</P>  </BODY> </HTML>"
 

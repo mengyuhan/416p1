@@ -199,7 +199,7 @@ type DelShapeArgs struct {
 }
 
 type CloseCanvReply struct {
-	Ops          []Operation
+	canvOps      map[string][]string
 	inkRemaining uint32
 }
 
@@ -898,7 +898,7 @@ func (m *MinerRPC) CloseCanvas(args int, reply *CloseCanvReply) error {
 	}
 	ink := blockChain[lastOne].MinerInks[myKeyPairInString]
 
-	*reply = CloseCanvReply{blockChain[lastOne].Ops, ink.inkRemain}
+	*reply = CloseCanvReply{blockChain[lastOne].CanvasOperations, ink.inkRemain}
 	fmt.Println("@@@ CloseCanvas")
 	return nil
 }
