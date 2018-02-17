@@ -1,0 +1,27 @@
+1st Block
+Hash: 961164f6f3b387a93d679c108757f000
+Nonce: 19680
+Circle OpSig: 
+
+2nd Block
+Hash: 4ec987b07c082e4a602b39fb28d27000
+Nonce: 4793
+
+3rd Block
+Hash: ec5b53b7c284710dee47deaa416bd000
+Nonce: 2781
+
+==============================================
+Block operation final set of tests
+
+Hash: 961164f6f3b387a93d679c108757f000
+Nonce: 19680
+Circle OpSig: 
+
+2nd Block
+Hash: 4ec987b07c082e4a602b39fb28d27000
+Nonce: 4793
+
+3rd Block
+Hash: ec5b53b7c284710dee47deaa416bd000
+Nonce: 2781
