@@ -42,7 +42,6 @@ var (
 	localIPPortArr    [2]string
 	artAppListenPort  string
 	globalPubKeyStr   string = ""
-	currInkMined      uint32
 )
 
 type allMinersConnectedTo struct {
@@ -282,7 +281,7 @@ func main() {
 	if err != nil {
 		fmt.Println("Error dialing to server ", err.Error)
 	}
-
+	fmt.Println("Miner address is ====== " + addr.String())
 	myMinerInfo = MinerInfo{Address: addr, Key: myPrivKey.PublicKey}
 	err = cRPC.Call("RServer.Register", myMinerInfo, &settings)
 	exitOnError(fmt.Sprintf("client registration for %s", myMinerInfo.Address), err)
@@ -312,7 +311,14 @@ func main() {
 		//fmt.Printf("globalPubKeyStr: %s\n", globalPubKeyStr)
 		inkMinedRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkMined
 		inkRemainingRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkRemain
+<<<<<<< HEAD
 		currInkMined = inkMinedRightNow
+<<<<<<< HEAD
+=======
+=======
+
+>>>>>>> 2b1abd5b7887f776080e1e0a190531e38947241e
+>>>>>>> 94972964441b044efdd9bef26c4f4e53644e01e8
 		fmt.Printf("My ink mined is %d remaining is: %d\n", inkMinedRightNow, inkRemainingRightNow)
 	}
 }
@@ -679,6 +685,7 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 	fmt.Println("@@@ADDDD1", args.ShapeSvgString)
 	spentInk, err := SvgHelper.AddShapeToMap(args.ShapeSvgString, args.ArtNodePK, args.Fill,
 		remainInk, previousMap)
+
 	currentInkRemain := remainInk - spentInk
 	fmt.Println("@@@ink remaining!!!! %d-----------spend!!!! %d-------currentinkRemain %d-------", remainInk, spentInk, currentInkRemain)
 	if err != nil {
@@ -704,12 +711,12 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 	newOps = append(newOps, newOp)
 	mInks := blockChain[lastOne].MinerInks
 	incAcc := mInks[globalPubKeyStr]
-	incAcc.inkRemain = uint32(currentInkRemain)
 	fmt.Println("@@@ADD23DD")
 
-	inkSpent, inkMined := totalInkSpentAndMinedByMiner(blockChain, pkStr)
+	_, inkMined := totalInkSpentAndMinedByMiner(blockChain, pkStr)
 	incAcc.inkMined = inkMined
-	incAcc.inkSpent = uint32(spentInk) + inkSpent
+	incAcc.inkSpent = uint32(spentInk) + incAcc.inkSpent
+	incAcc.inkRemain = inkMined  - incAcc.inkSpent
 	fmt.Println("@@@in incAcc inkMined!!!! %d-----------inkSpent!!!! %d-------incAcc.inkRemain %d-------", inkMined, incAcc.inkSpent, incAcc.inkRemain)
 
 	mInks[globalPubKeyStr] = incAcc
@@ -763,6 +770,7 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 		fmt.Print(args.shapeHash, "##KKK6666666KK", operations[i].OpSig)
 		if operations[i].OpSig == args.shapeHash {
 			if args.ArtNodePK == operations[i].PubKeyArtNode {
+
 				fmt.Print("##KKKKKKK")
 				newOp := Operation{"delete", args.shapeHash, args.ArtNodePK, "", ""}
 				newBlock, _ := generateBlock(blockChain[lastOne])
@@ -812,6 +820,7 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 					time.Sleep(3 * time.Second)
 				}
 				ink := blockChain[lastOne].MinerInks[globalPubKeyStr]
+
 				*inkRemaining = ink.inkRemain
 				return err2
 			}
