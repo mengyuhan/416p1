@@ -292,7 +292,11 @@ func main() {
 	go monitorNumConnections(ipPort)
 
 	for {
+<<<<<<< HEAD
 		sleep_time := 1000 * time.Millisecond
+=======
+		sleep_time := 3000 * time.Millisecond
+>>>>>>> 0509264fb1ccb25b9e9a497b69194d175f001c36
 		time.Sleep(sleep_time)
 
 		fmt.Println("Main still alive")
@@ -678,7 +682,7 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 	fmt.Println("@@@ADDDD1", args.ShapeSvgString)
 	spentInk, err := SvgHelper.AddShapeToMap(args.ShapeSvgString, args.ArtNodePK, args.Fill,
 		remainInk, previousMap)
-	fmt.Println("@@@ink remaining!!!! %d-------------------------", remainInk, err)
+	fmt.Println("@@@ink remaining!!!! %d-----------spend!!!! %d--------------", remainInk, spentInk)
 
 	currentInkRemain := remainInk - spentInk
 	if err != nil {
