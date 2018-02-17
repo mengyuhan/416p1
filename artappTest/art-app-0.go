@@ -4,7 +4,7 @@ A trivial application to illustrate how the blockartlib library can be
 used from an application in project 1 for UBC CS 416 2017W2.
 
 Usage:
-go run art-app.go miner-addr privKey
+go run art-app.go <miner-addr:art-app-port> <privKey>
 */
 
 package main
@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"os"
 
-	"./blockartlib"
+	"../blockartlib"
 )
 
 func main() {
