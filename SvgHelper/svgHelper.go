@@ -154,7 +154,7 @@ func AddShapeToMap(svgString string, publicKey string, shapeType string, minerIn
 // - ShapeOwnerError
 // - OutofBoundError: if any point is outside canvas size, return error
 // - InvalidShapeSvgStringError: if given filled type with not closed shape
-func RemoveShapeFromMap(svgString string, publicKey string, shapeType string, minerInk int, mapPoints map[string]MapPoint) (ink int, err error) {
+func RemoveShapeFromMap(svgString string, publicKey string, shapeType string, mapPoints map[string]MapPoint) (ink int, err error) {
 	var transparentMapPoints map[int]point
 	var polygon [][]bool
 	var close bool
@@ -185,7 +185,7 @@ func RemoveShapeFromMap(svgString string, publicKey string, shapeType string, mi
 			fmt.Println(err)
 			return 0, err
 		}
-		polygon, ink, err = FilledSvgToPolygon(transparentMapPoints, publicKey, minerInk)
+		polygon, ink, err = RemoveFilledSvgToPolygon(transparentMapPoints, publicKey)
 		if err != nil {
 			fmt.Println(err)
 			return 0, err
@@ -213,9 +213,9 @@ func RemoveShapeFromMap(svgString string, publicKey string, shapeType string, mi
 			}
 		}
 	}
-	for key, value := range mapPoints {
-		fmt.Printf("in glogal mapPoints, key %s, count %d\n", key, value.count)
-	}
+	// for key, value := range mapPoints {
+	// 	fmt.Printf("in glogal mapPoints, key %s, count %d\n", key, value.count)
+	// }
 	return ink, nil
 }
 
@@ -507,8 +507,8 @@ func TransparentSvgToCoord(svgString string, publicKey string, minerInk int) (lo
 	if endPoint == initialPoint {
 		close = true
 	}
-	for key, value := range localMapPoints {
-		fmt.Printf("in localMapPoints, key %d, pstring %s\n", key, value)
+	for _, _ = range localMapPoints {
+		//fmt.Printf("in localMapPoints, key %d, pstring %s\n", key, value)
 		ink++
 	}
 	fmt.Printf("close and ink--------------------------------------------------------------\n")
@@ -810,8 +810,8 @@ func RemoveTransparentSvgToCoord(svgString string, publicKey string) (localMapPo
 	if endPoint == initialPoint {
 		close = true
 	}
-	for key, value := range localMapPoints {
-		fmt.Printf("in localMapPoints, key %d, pstring %s\n", key, value)
+	for _, _ = range localMapPoints {
+		//fmt.Printf("in localMapPoints, key %d, pstring %s\n", key, value)
 		ink++
 	}
 	return localMapPoints, ink, close, nil
