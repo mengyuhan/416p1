@@ -292,11 +292,7 @@ func main() {
 	go monitorNumConnections(ipPort)
 
 	for {
-<<<<<<< HEAD
-		sleep_time := 1000 * time.Millisecond
-=======
 		sleep_time := 3000 * time.Millisecond
->>>>>>> 0509264fb1ccb25b9e9a497b69194d175f001c36
 		time.Sleep(sleep_time)
 
 		fmt.Println("Main still alive")
@@ -924,15 +920,19 @@ func (m *MinerToMinerRPC) EstablishReverseRPC(addr string, reply *string) error 
 func (m *MinerToMinerRPC) SendBlockchain(bc []Block, reply *string) error {
 	// 1. Check if the sent block is longer than our block.
 	if isSentChainLonger(bc) {
+		fmt.Println("sbc: Received a longer chain than what we have.")
 		// 1.2 If the sent block <bc> is longer, validate that it is a good block chain
 		if validateSufficientInkAll(bc) && validateBlockChain(bc) {
 			// 2.2 Otherwise acquire the lock for global blockchain and set it to sent block
+			fmt.Println("sbc: longer chain is valid, we'll throw ours away")
 			blockChain = bc
+			*reply = strconv.FormatBool(true)
 			return nil
 		}
 		// 2.1 If the longer sent block <bc> is bad, silently return
 	}
 	// 1.1 If the sent block <bc> is not longer, silently return
+	*reply = strconv.FormatBool(false)
 	return nil
 }
 
