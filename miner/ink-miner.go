@@ -313,7 +313,7 @@ func main() {
 		inkMinedRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkMined
 		inkRemainingRightNow := blockChain[lastOne].MinerInks[globalPubKeyStr].inkRemain
 		currInkMined = inkMinedRightNow
-		fmt.Printf("My ink mined is %d remaining is: %d\n", inkMinedRightNow,inkRemainingRightNow)
+		fmt.Printf("My ink mined is %d remaining is: %d\n", inkMinedRightNow, inkRemainingRightNow)
 	}
 }
 
@@ -757,9 +757,10 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 	if lastOne < 0 {
 		return InvalidShapeHashError(args.shapeHash)
 	}
-	fmt.Print("##KKKKK3333333333KK")
+	fmt.Print(args.shapeHash, "##KKK(99999)6KK")
 	operations := blockChain[lastOne].Ops
 	for i := 0; i < len(operations); i++ {
+		fmt.Print(args.shapeHash, "##KKK6666666KK", operations[i].OpSig)
 		if operations[i].OpSig == args.shapeHash {
 			if args.ArtNodePK == operations[i].PubKeyArtNode {
 				fmt.Print("##KKKKKKK")
