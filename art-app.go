@@ -44,25 +44,26 @@ func main() {
 	validateNum := uint8(2)
 	fmt.Print(canvas, "ignore", validateNum)
 	// Add a line.
-	shapeHash, blockHash, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
+	shapeHash, _, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
 	if checkError(err) != nil {
 		// return
 	}
+	println("\n----------------------------")
+	fmt.Println(shapeHash, ink)
 	println("----------------------------")
-	fmt.Println(shapeHash, blockHash, ink)
-	println("----------------------------")
-	// // Add another line.
-	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 5 0", "transparent", "blue")
-	if checkError(err) != nil {
-		return
-	}
-	fmt.Print(shapeHash2, blockHash2, ink2)
 
 	inkRm, err3 := canvas.DeleteShape(3, shapeHash)
 	if checkError(err3) != nil {
 		return
 	}
 	fmt.Print("####", inkRm)
+
+	// // Add another line.
+	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
+	if checkError(err) != nil {
+		return
+	}
+	fmt.Print(shapeHash2, blockHash2, ink2)
 
 	// Close the canvas.
 	ink4, err := canvas.CloseCanvas()
