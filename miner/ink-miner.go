@@ -281,7 +281,7 @@ func main() {
 	if err != nil {
 		fmt.Println("Error dialing to server ", err.Error)
 	}
-
+	fmt.Println("Miner address is ====== " + addr.String())
 	myMinerInfo = MinerInfo{Address: addr, Key: myPrivKey.PublicKey}
 	err = cRPC.Call("RServer.Register", myMinerInfo, &settings)
 	exitOnError(fmt.Sprintf("client registration for %s", myMinerInfo.Address), err)
@@ -678,6 +678,7 @@ func (m *MinerRPC) AddShape(args AddShapeStruct, reply *AddShapeReply) error {
 	fmt.Println("@@@ADDDD1", args.ShapeSvgString)
 	spentInk, err := SvgHelper.AddShapeToMap(args.ShapeSvgString, args.ArtNodePK, args.Fill,
 		remainInk, previousMap)
+
 	currentInkRemain := remainInk - spentInk
 	fmt.Println("@@@ink remaining!!!! %d-----------spend!!!! %d-------currentinkRemain %d-------", remainInk, spentInk, currentInkRemain)
 	if err != nil {
@@ -761,6 +762,7 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 	for i := 0; i < len(operations); i++ {
 		if operations[i].OpSig == args.shapeHash {
 			if args.ArtNodePK == operations[i].PubKeyArtNode {
+
 				fmt.Print("##KKKKKKK")
 				newOp := Operation{"delete", args.shapeHash, args.ArtNodePK, "", ""}
 				newBlock, _ := generateBlock(blockChain[lastOne])
@@ -810,6 +812,7 @@ func (m *MinerRPC) DeleteShape(args DelShapeArgs, inkRemaining *uint32) error {
 					time.Sleep(3 * time.Second)
 				}
 				ink := blockChain[lastOne].MinerInks[globalPubKeyStr]
+>>>>>>> 965f520dfc70398a3ed6f68e92373d394ed4a67b
 				*inkRemaining = ink.inkRemain
 				return err2
 			}
