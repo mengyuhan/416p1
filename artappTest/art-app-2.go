@@ -14,8 +14,8 @@ package main
 import (
 	"crypto/ecdsa"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
-	"flag"
 	"fmt"
 	"os"
 
@@ -23,41 +23,33 @@ import (
 )
 
 func main() {
-	args := os.Args[1:]
-	minerPort := args[0]
-	fmt.Println(minerPort)
-
-	minerAddr := "127.0.0.1:" + minerPort
-	//privKey := // TODO: use crypto/ecdsa to read pub/priv keys from a file argument.
-	privKey := flag.String("i", "", "RPC server ip:port")
-	println(*privKey)
-	// Open a canvas.
-	var key ecdsa.PrivateKey
-	key = *decode(*privKey)
-	canvas, settings, err := blockartlib.OpenCanvas(minerAddr, key)
-	println(settings.CanvasXMax)
-	if checkError(err) != nil {
+	if len(os.Args) != 3 {
+		fmt.Println("Server address [ip:port] privatekeyString")
 		return
 	}
-	var validateNum uint8
-	validateNum = 2
+	minerAddr := os.Args[1]
+	privString := os.Args[2]
+	privateKeyBytesRestored, _ := hex.DecodeString(privString)
+	privKey, _ := x509.ParseECPrivateKey(privateKeyBytesRestored)
 
-	shapeHash, blockHash, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 500 0 l 500 0 l 500 500 h -500 z", "non-transparent", "red")
+	// Open a canvas.
+	// canvas, settings, err := blockartlib.OpenCanvas(minerAddr, *privKey)
+	canvas, _, err := blockartlib.OpenCanvas(minerAddr, *privKey)
+	if checkError(err) != nil {
+		fmt.Println(err)
+		return
+	}
+
+	validateNum := uint8(2)
+	fmt.Print(canvas, "ignore", validateNum)
+
+	shapeHash, blockHash, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 5 0 l 5 0 L 5 5 h -5 z", "transparent", "red")
 	if checkError(err) != nil {
 		return
 	}
 	fmt.Println(shapeHash)
 	fmt.Println(blockHash)
 	fmt.Println(ink)
-
-	// Add a line.
-	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 499 H 500", "non-transparent", "blue")
-	if checkError(err) != nil {
-		return
-	}
-	fmt.Println(shapeHash2)
-	fmt.Println(blockHash2)
-	fmt.Println(ink2)
 
 	// // Delete the first line.
 	// ink3, err := canvas.DeleteShape(validateNum, shapeHash)

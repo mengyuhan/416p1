@@ -14,6 +14,7 @@ package main
 import (
 	"crypto/ecdsa"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
@@ -37,8 +38,13 @@ func main() {
 	// privKey := flag.String("i", "", "RPC server ip:port")
 	// Open a canvas.
 	//var key ecdsa.PrivateKey
-	key := decode(privKey)
-	fmt.Println(key)
+
+	keyAsBytes, _ := hex.DecodeString(privKey)
+	myPrivKey, _ := x509.ParseECPrivateKey(keyAsBytes)
+	fmt.Println(myPrivKey)
+
+	key := decode(myPrivKey)
+	fmt.Println(myPrivKey)
 	canvas, settings, err := blockartlib.OpenCanvas(minerAddr, *key)
 
 	println(settings.CanvasXMax)

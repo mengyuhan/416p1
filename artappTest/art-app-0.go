@@ -1,6 +1,7 @@
 /*
 
-This art-app tries to draw something where it doesn't have the requisite amount of ink.
+A trivial application to illustrate how the blockartlib library can be
+used from an application in project 1 for UBC CS 416 2017W2.
 
 Usage:
 go run art-app.go <miner-addr:art-app-port> <privKey>
@@ -42,35 +43,20 @@ func main() {
 
 	validateNum := uint8(2)
 	fmt.Print(canvas, "ignore", validateNum)
-
-	/************************
-	Add a line
-	*************************/
-	shapeHash, blockHash, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 200 200 L 0 100", "transparent", "red")
+	// Add a line.
+	shapeHash, blockHash, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
 	if checkError(err) != nil {
 		// return
 	}
 	println("----------------------------")
 	fmt.Print(shapeHash, blockHash, ink)
 	println("----------------------------")
-
-	/************************
-	Add a triangle
-	*************************/
-	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 400 0 L 0 400 h 800 l -400 -400", "transparent", "blue")
+	// // Add another line.
+	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 5 0", "transparent", "blue")
 	if checkError(err) != nil {
 		return
 	}
 	fmt.Print(shapeHash2, blockHash2, ink2)
-
-	// Delete the first line.
-	// ink3, err := canvas.DeleteShape(validateNum, shapeHash)
-	// if checkError(err) != nil {
-	// 	return
-	// }
-	// fmt.Println(ink3)
-
-	// assert ink3 > ink2
 
 	// Close the canvas.
 	ink4, err := canvas.CloseCanvas()

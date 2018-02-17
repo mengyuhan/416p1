@@ -4,7 +4,7 @@ A trivial application to illustrate how the blockartlib library can be
 used from an application in project 1 for UBC CS 416 2017W2.
 
 Usage:
-go run art-app.go
+go run art-app.go miner-addr privKey
 */
 
 package main
@@ -49,7 +49,7 @@ func main() {
 		// return
 	}
 	println("----------------------------")
-	fmt.Print(shapeHash, blockHash, ink)
+	fmt.Println(shapeHash, blockHash, ink)
 	println("----------------------------")
 	// // Add another line.
 	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 5 0", "transparent", "blue")
