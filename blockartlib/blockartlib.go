@@ -67,7 +67,7 @@ type MyCanvas struct {
 	conn             *rpc.Client
 	minerPrivKey     ecdsa.PrivateKey
 	minerNetSettings MinerNetSettings
-	artnodePrivKey   ecdsa.PrivateKey
+	artnodePrivKey   string
 }
 
 type ValidMiner struct {
@@ -280,7 +280,8 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	tmp := validMiner.MinerNetSets
 	setting = tmp.canvasSettings
 	println("4")
-	canv := MyCanvas{c, privKey, validMiner.MinerNetSets, *artnodePK}
+	artPkinStr := getPrivKeyInStr(*artnodePK)
+	canv := MyCanvas{c, privKey, validMiner.MinerNetSets, artPkinStr}
 
 	canvas = &canv
 	return canvas, setting, err
@@ -312,12 +313,12 @@ func (c *MyCanvas) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgStri
 	// }
 
 	// mpk := getPrivKeyInStr(c.minerPrivKey)
-	artPKStr := getPrivKeyInStr(c.artnodePrivKey)
-	args := AddShapeStruct{1, shapeType, shapeSvgString, fill, stroke, artPKStr}
+
+	args := AddShapeStruct{1, shapeType, shapeSvgString, fill, stroke, c.artnodePrivKey}
 	reply := AddShapeReply{}
 	err = c.conn.Call("InkMinerRPC.AddShape", args, &reply)
-	fmt.Println("@@@", reply.ShapeHash)
-	return shapeHash, blockHash, inkRemaining, err
+	// fmt.Println("@@@", reply.ShapeHash)
+	return reply.ShapeHash, reply.BlockHash, reply.InkRemaining, err
 }
 
 // Returns the encoding of the shape as an svg string.
@@ -345,7 +346,8 @@ func (c *MyCanvas) GetInk() (inkRemaining uint32, err error) {
 // - DisconnectedError
 // - ShapeOwnerError
 func (c *MyCanvas) DeleteShape(validateNum uint8, shapeHash string) (inkRemaining uint32, err error) {
-	args := DelShapeArgs{}
+	args := DelShapeArgs{validateNum, shapeHash, c.artnodePrivKey}
+	fmt.Print(args, "lib!!!")
 	err = c.conn.Call("InkMinerRPC.DeleteShape", args, &inkRemaining)
 	return inkRemaining, err
 }
